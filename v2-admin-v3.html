@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Control – Together, We Win!</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+/* ════════════════════════════════════════
+   RESET & ROOT
+════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#080f20;
+  --panel:#0d1530;
+  --panel2:#0f1940;
+  --border:rgba(255,255,255,.08);
+  --cyan:#00c8f8;
+  --cyan2:#00f0ff;
+  --pink:#e0007f;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --dim:rgba(255,255,255,.45);
+  --dimmer:rgba(255,255,255,.22);
+}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  font-family:'Barlow',sans-serif;
+  background:var(--bg);color:#fff;
+  font-size:13px;
+}
+
+/* ════════════════════════════════════════
+   PASSWORD GATE
+════════════════════════════════════════ */
+#pw-gate{
+  position:fixed;inset:0;z-index:200;
+  background:#030b1f;
+  display:flex;align-items:center;justify-content:center;
+}
+.pw-box{
+  width:min(88vw,360px);
+  background:rgba(13,21,48,.9);
+  border:1px solid rgba(0,200,248,.2);
+  border-radius:18px;
+  padding:36px 28px;text-align:center;
+  box-shadow:0 0 60px rgba(0,0,0,.6);
+  animation:fadeUp .4s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.pw-icon{font-size:2.4rem;margin-bottom:12px;}
+.pw-title{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;color:var(--cyan);margin-bottom:4px;}
+.pw-sub{font-size:.78rem;color:var(--dim);margin-bottom:22px;}
+.pw-input{
+  width:100%;background:rgba(255,255,255,.06);
+  border:1.5px solid rgba(0,200,248,.2);border-radius:9px;
+  padding:12px 14px;color:#fff;font-size:.95rem;
+  text-align:center;letter-spacing:.15em;outline:none;
+  font-family:'Barlow',sans-serif;
+  transition:border-color .2s;margin-bottom:12px;
+}
+.pw-input:focus{border-color:var(--cyan);}
+.pw-input.shake{animation:shk .3s ease;}
+@keyframes shk{0%,100%{transform:translateX(0);}25%,75%{transform:translateX(-6px);}50%{transform:translateX(6px);}}
+.pw-btn{
+  width:100%;padding:12px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,#0a2060,var(--cyan));
+  color:#fff;font-family:'Rajdhani',sans-serif;
+  font-size:1.05rem;font-weight:700;letter-spacing:.1em;
+  cursor:pointer;transition:filter .2s;
+}
+.pw-btn:hover{filter:brightness(1.1);}
+.pw-err{font-size:.75rem;color:var(--red);margin-top:8px;min-height:18px;}
+
+/* ════════════════════════════════════════
+   MAIN LAYOUT – two-column
+════════════════════════════════════════ */
+#admin-ui{display:none;height:100%;flex-direction:column;}
+#admin-ui.show{display:flex;}
+
+/* TOP BAR */
+.topbar{
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;
+  background:rgba(8,15,32,.95);
+  border-bottom:1px solid var(--border);
+  z-index:10;
+}
+.topbar-title{
+  font-family:'Rajdhani',sans-serif;
+  font-size:1rem;font-weight:700;letter-spacing:.12em;color:var(--cyan);
+}
+.topbar-title span{color:var(--dimmer);font-weight:400;font-size:.82em;}
+.live-badge{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);
+  border-radius:100px;padding:4px 12px;
+  font-family:'Rajdhani',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.12em;color:var(--green);
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(34,197,94,.5);
+  animation:livePulse 2s ease-out infinite;
+}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5);}70%{box-shadow:0 0 0 8px rgba(34,197,94,0);}100%{box-shadow:0 0 0 0 rgba(34,197,94,0);}}
+.topbar-btns{display:flex;gap:8px;}
+.tb-btn{
+  padding:6px 13px;border-radius:7px;
+  border:1px solid var(--border);background:rgba(255,255,255,.04);
+  color:var(--dim);font-size:.75rem;font-weight:600;cursor:pointer;
+  transition:all .18s;
+}
+.tb-btn:hover{background:rgba(0,200,248,.1);border-color:rgba(0,200,248,.3);color:#fff;}
+
+/* BODY */
+.admin-body{
+  flex:1;display:flex;overflow:hidden;
+  min-height:0;
+}
+
+/* LEFT COLUMN */
+.left-col{
+  width:260px;flex-shrink:0;
+  overflow-y:auto;
+  border-right:1px solid var(--border);
+  padding:14px 12px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.left-col::-webkit-scrollbar{width:3px;}
+.left-col::-webkit-scrollbar-thumb{background:rgba(0,200,248,.2);}
+
+/* RIGHT COLUMN */
+.right-col{
+  flex:1;overflow-y:auto;
+  padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.right-col::-webkit-scrollbar{width:3px;}
+.right-col::-webkit-scrollbar-thumb{background:rgba(0,200,248,.2);}
+
+/* ════════════════════════════════════════
+   PANEL CARDS
+════════════════════════════════════════ */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px 16px;
+}
+.panel-title{
+  font-family:'Rajdhani',sans-serif;
+  font-size:.65rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:12px;
+  display:flex;align-items:center;gap:7px;
+}
+.panel-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,200,248,.25),transparent);}
+
+/* ════════════════════════════════════════
+   STATUS ROW
+════════════════════════════════════════ */
+.status-row{display:flex;gap:8px;}
+.stat-pill{
+  flex:1;text-align:center;
+  background:rgba(0,200,248,.07);
+  border:1px solid rgba(0,200,248,.18);
+  border-radius:8px;padding:9px 6px;
+}
+.stat-num{
+  font-family:'Rajdhani',sans-serif;
+  font-size:1.6rem;font-weight:700;color:var(--cyan);line-height:1;
+}
+.stat-lbl{font-size:.6rem;color:var(--dimmer);margin-top:2px;}
+
+/* ════════════════════════════════════════
+   GLOW BUTTONS
+════════════════════════════════════════ */
+.glow-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.glow-btn{
+  padding:10px 8px;border-radius:9px;
+  border:1.5px solid var(--border);
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.75);
+  font-size:.75rem;font-weight:600;
+  cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.glow-btn:hover{border-color:rgba(0,200,248,.4);background:rgba(0,200,248,.1);color:#fff;}
+.glow-btn.active{border-color:var(--cyan);background:rgba(0,200,248,.15);color:var(--cyan2);}
+.glow-btn.danger{border-color:rgba(239,68,68,.25);}
+.glow-btn.danger:hover{border-color:var(--red);background:rgba(239,68,68,.12);}
+
+/* ════════════════════════════════════════
+   SLIDERS
+════════════════════════════════════════ */
+.slider-row{margin-bottom:12px;}
+.slider-label{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.76rem;font-weight:500;margin-bottom:6px;
+}
+.slider-val{
+  font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;
+  color:var(--cyan);min-width:40px;text-align:right;
+}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:3px;
+  background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 8px rgba(0,200,248,.5);
+  cursor:pointer;transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
+input[type=range].pink::-webkit-slider-thumb{background:var(--pink);box-shadow:0 0 8px rgba(224,0,127,.5);}
+
+/* ════════════════════════════════════════
+   TOGGLE SWITCH
+════════════════════════════════════════ */
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);
+}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-info .tl{font-size:.78rem;font-weight:500;}
+.toggle-info .ts{font-size:.65rem;color:var(--dimmer);margin-top:1px;}
+.toggle{position:relative;width:40px;height:22px;cursor:pointer;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.ttrack{position:absolute;inset:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:100px;transition:all .2s;}
+.toggle input:checked+.ttrack{background:rgba(0,200,248,.25);border-color:var(--cyan);}
+.tthumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.4);transition:all .2s;}
+.toggle input:checked~.tthumb{transform:translateX(18px);background:var(--cyan);}
+
+/* ════════════════════════════════════════
+   COUNTDOWN
+════════════════════════════════════════ */
+.countdown-display{
+  text-align:center;
+  font-family:'Rajdhani',sans-serif;
+  font-size:3rem;font-weight:700;letter-spacing:.06em;
+  color:var(--cyan2);
+  text-shadow:0 0 20px rgba(0,200,248,.6);
+  padding:10px 0 4px;
+  line-height:1;
+}
+.countdown-sub{font-size:.6rem;color:var(--dimmer);letter-spacing:.18em;text-transform:uppercase;text-align:center;margin-bottom:12px;}
+.countdown-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.preset-btn{
+  flex:1;min-width:48px;padding:7px 6px;text-align:center;
+  border-radius:7px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:var(--dim);
+  font-family:'Rajdhani',sans-serif;font-size:.78rem;font-weight:600;
+  cursor:pointer;transition:all .18s;
+}
+.preset-btn:hover{border-color:rgba(0,200,248,.4);background:rgba(0,200,248,.1);color:#fff;}
+.cd-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+
+/* circular timer svg */
+.circle-timer-wrap{display:flex;justify-content:center;margin-bottom:10px;}
+.circle-timer{transform:rotate(-90deg);}
+.timer-bg{fill:none;stroke:rgba(255,255,255,.07);stroke-width:5;}
+.timer-fg{fill:none;stroke:var(--cyan2);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s linear;}
+
+/* ════════════════════════════════════════
+   TEXT INPUTS
+════════════════════════════════════════ */
+.text-input{
+  width:100%;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:9px 11px;
+  color:#fff;font-family:'Barlow',sans-serif;font-size:.82rem;
+  outline:none;transition:border-color .2s;margin-bottom:8px;
+}
+.text-input:focus{border-color:rgba(0,200,248,.4);}
+.text-input::placeholder{color:rgba(255,255,255,.2);}
+.input-label{font-size:.65rem;color:var(--dimmer);margin-bottom:4px;font-weight:500;}
+
+/* ════════════════════════════════════════
+   IMAGE UPLOAD
+════════════════════════════════════════ */
+.upload-zone{
+  border:1.5px dashed rgba(255,255,255,.12);
+  border-radius:9px;padding:14px;text-align:center;
+  cursor:pointer;transition:all .2s;position:relative;
+  margin-bottom:8px;
+}
+.upload-zone:hover,.upload-zone.dragover{border-color:rgba(0,200,248,.4);background:rgba(0,200,248,.05);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.upload-icon{font-size:1.4rem;margin-bottom:4px;}
+.upload-txt{font-size:.72rem;color:var(--dim);}
+.upload-txt strong{color:var(--cyan);}
+.preview-wrap{position:relative;margin-bottom:8px;display:none;}
+.preview-img{width:100%;height:80px;object-fit:cover;border-radius:7px;border:1px solid var(--border);}
+.preview-clear{
+  position:absolute;top:4px;right:4px;
+  background:rgba(0,0,0,.7);border:none;color:#fff;
+  border-radius:50%;width:22px;height:22px;
+  cursor:pointer;font-size:.8rem;line-height:22px;text-align:center;
+}
+
+/* ════════════════════════════════════════
+   NAME CHIPS LIST
+════════════════════════════════════════ */
+.name-chips{
+  display:flex;flex-wrap:wrap;gap:5px;
+  max-height:180px;overflow-y:auto;
+}
+.name-chips::-webkit-scrollbar{width:2px;}
+.name-chips::-webkit-scrollbar-thumb{background:rgba(0,200,248,.2);}
+.nchip{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:100px;padding:4px 9px 4px 7px;
+  font-size:.73rem;color:rgba(255,255,255,.8);
+  transition:border-color .15s;
+}
+.nchip:hover{border-color:rgba(239,68,68,.4);}
+.nchip-del{
+  background:none;border:none;color:rgba(239,68,68,.5);
+  cursor:pointer;font-size:.85rem;line-height:1;padding:0;
+  transition:color .15s;
+}
+.nchip-del:hover{color:var(--red);}
+.nchip-role{font-size:.6rem;color:var(--dimmer);}
+.chips-empty{font-size:.75rem;color:var(--dimmer);padding:10px 0;text-align:center;width:100%;}
+
+/* ════════════════════════════════════════
+   DANGER ZONE
+════════════════════════════════════════ */
+.danger-panel{border-color:rgba(239,68,68,.18);}
+.danger-btn{
+  width:100%;padding:11px;border-radius:9px;
+  border:1.5px solid rgba(239,68,68,.25);
+  background:rgba(239,68,68,.07);color:rgba(255,255,255,.7);
+  font-family:'Barlow',sans-serif;font-size:.82rem;font-weight:600;
+  cursor:pointer;transition:all .18s;
+}
+.danger-btn:hover{background:rgba(239,68,68,.18);border-color:var(--red);color:#fff;}
+
+/* MODAL */
+.modal-back{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;}
+.modal-back.open{display:flex;}
+.modal-box{
+  background:#0a1030;border:1px solid rgba(239,68,68,.3);border-radius:14px;
+  padding:28px 24px;text-align:center;max-width:320px;width:90%;
+  animation:fadeUp .3s ease both;
+}
+.modal-box h3{font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;color:var(--red);margin-bottom:8px;}
+.modal-box p{font-size:.82rem;color:var(--dim);margin-bottom:22px;line-height:1.5;}
+.modal-btns{display:flex;gap:8px;}
+.modal-cancel{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;font-family:'Barlow',sans-serif;font-size:.85rem;}
+.modal-cancel:hover{color:#fff;border-color:rgba(255,255,255,.3);}
+.modal-ok{flex:1;padding:10px;border-radius:8px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:'Barlow',sans-serif;font-size:.85rem;font-weight:700;}
+.modal-ok:hover{filter:brightness(1.1);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:400;
+  background:#0a1030;border:1px solid var(--cyan);border-radius:9px;
+  padding:10px 16px;font-size:.82rem;color:#fff;
+  transform:translateY(60px);opacity:0;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SEARCH */
+.search-input{
+  width:100%;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);border-radius:7px;
+  padding:7px 11px;color:#fff;font-size:.78rem;
+  font-family:'Barlow',sans-serif;outline:none;margin-bottom:9px;
+  transition:border-color .2s;
+}
+.search-input:focus{border-color:rgba(0,200,248,.3);}
+.search-input::placeholder{color:rgba(255,255,255,.2);}
+
+/* ════════════════════════════════════════
+   COLOR PRESET BUTTONS
+════════════════════════════════════════ */
+.color-preset-btn{
+  padding:8px 4px;border-radius:8px;
+  border:1.5px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.7);
+  font-size:.72rem;font-weight:600;
+  cursor:pointer;transition:all .18s;
+  text-align:center;
+}
+.color-preset-btn:hover{
+  border-color:var(--cc,var(--cyan));
+  background:color-mix(in srgb, var(--cc,var(--cyan)) 15%, transparent);
+  color:#fff;
+}
+.color-preset-btn.active{
+  border-color:var(--cc,var(--cyan));
+  background:color-mix(in srgb, var(--cc,var(--cyan)) 22%, transparent);
+  color:#fff;
+  box-shadow:0 0 10px color-mix(in srgb, var(--cc,var(--cyan)) 40%, transparent);
+}
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ PASSWORD GATE ════════════════════ -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-icon">🎛️</div>
+    <div class="pw-title">Admin Control</div>
+    <div class="pw-sub">Nhập mật khẩu để vào trang điều khiển</div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••••••" autocomplete="off"/>
+    <button class="pw-btn" onclick="checkPw()">ĐĂNG NHẬP</button>
+    <div class="pw-err" id="pw-err"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ ADMIN UI ════════════════════ -->
+<div id="admin-ui">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title">⚙️ Admin Control <span>/ Nestlé Game System</span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <div class="topbar-btns">
+        <button class="tb-btn" onclick="openMain()">🖥️ Màn chính</button>
+        <button class="tb-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="admin-body">
+
+    <!-- ════════ LEFT COLUMN ════════ -->
+    <div class="left-col">
+
+      <!-- STATUS -->
+      <div class="panel">
+        <div class="panel-title">📊 Trạng thái</div>
+        <div class="status-row">
+          <div class="stat-pill">
+            <div class="stat-num" id="st-total">0</div>
+            <div class="stat-lbl">Tham gia</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-num" style="color:var(--green)" id="st-recent">0</div>
+            <div class="stat-lbl">Phút này</div>
+          </div>
+          <div class="stat-pill" style="border-color:rgba(245,158,11,.25)">
+            <div class="stat-num" style="color:var(--amber)">100</div>
+            <div class="stat-lbl">Mục tiêu</div>
+          </div>
+          <div class="stat-pill" style="border-color:rgba(255,200,0,.2)">
+            <div class="stat-num" style="color:#ffd700;font-size:1.2rem" id="st-clap">0</div>
+            <div class="stat-lbl">👏 Vỗ tay</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOW / LIGHT -->
+      <div class="panel">
+        <div class="panel-title">💡 Ánh sáng vòng tròn</div>
+        <div class="panel">
+  <div class="panel-title">🎆 Pháo hoa</div>
+  <div class="glow-btns">
+    <button class="glow-btn" onclick="fireOnce()">🎆 Bắn 1 lần</button>
+    <button class="glow-btn" onclick="fireAuto()">🔁 Tự động 4s</button>
+    <button class="glow-btn danger" onclick="stopFire()">⏹ Dừng</button>
+  </div>
+</div>
+        <div class="glow-btns">
+          <button class="glow-btn" id="gb-flash" onclick="setGlow('flash')">
+            ⚡ Nhấp nháy
+          </button>
+          <button class="glow-btn" id="gb-solid" onclick="setGlow('solid')">
+            🔆 Sáng hẵn
+          </button>
+          <button class="glow-btn" id="gb-off" onclick="setGlow('off')">
+            🌑 Tắt đèn
+          </button>
+          <button class="glow-btn" id="gb-reset" onclick="setGlow('solid');resetDefaults()">
+            🔄 Reset
+          </button>
+        </div>
+        <div class="slider-row" style="margin-top:12px">
+          <div class="slider-label">
+            Tốc độ nhấp nháy
+            <span class="slider-val" id="flash-speed-val">1.0s</span>
+          </div>
+          <input type="range" id="flash-speed" min="0.2" max="3" step="0.1" value="1"
+            oninput="onFlashSpeed(this.value)"/>
+        </div>
+      </div>
+      <!-- PHÁO HOA -->
+<div class="panel">
+  <div class="panel-title">🎆 Pháo hoa</div>
+  <div class="glow-btns">
+    <button class="glow-btn" onclick="fireOnce()">🎆 Bắn 1 lần</button>
+    <button class="glow-btn" onclick="fireAuto()">🔁 Tự động 4s</button>
+    <button class="glow-btn danger" onclick="stopFire()">⏹ Dừng</button>
+  </div>
+</div>
+
+
+      <!-- ROTATION -->
+      <div class="panel">
+        <div class="panel-title">🌀 Tốc độ xoay tên</div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Chậm ↔ Nhanh</span>
+            <span class="slider-val" id="rotate-speed-val">20s</span>
+          </div>
+          <input type="range" id="rotate-speed" min="5" max="80" value="20"
+            oninput="onRotateSpeed(this.value)"/>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="tl">Tên xoay tròn</div>
+            <div class="ts">Bật/tắt animation xoay</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rotating-toggle" checked onchange="onRotating(this.checked)"/>
+            <div class="ttrack"></div><div class="tthumb"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- BLACKOUT -->
+      <div class="panel">
+        <div class="panel-title">🖤 Màn hình chính</div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="tl">Màn đen (Blackout)</div>
+            <div class="ts">Ẩn toàn bộ nội dung</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="blackout-toggle" onchange="onBlackout(this.checked)"/>
+            <div class="ttrack"></div><div class="tthumb"></div>
+          </label>
+        </div>
+        <div style="margin-top:8px">
+          <div class="input-label">Độ sáng background ảnh</div>
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label">
+              <span>0% — 100%</span>
+              <span class="slider-val" id="bg-opacity-val">55%</span>
+            </div>
+            <input type="range" class="pink" id="bg-opacity" min="0" max="100" value="55"
+              oninput="onBgOpacity(this.value)"/>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end left-col -->
+
+    <!-- ════════ RIGHT COLUMN ════════ -->
+    <div class="right-col">
+
+      <!-- QUICK ACTIONS -->
+      <div class="panel">
+        <div class="panel-title">🚀 Điều khiển nhanh</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+          <button class="glow-btn" onclick="window.open('v2-index-v3.html','_blank')">🖥️ Mở màn chính</button>
+          <button class="glow-btn" onclick="triggerQRExpand()">📱 Phóng QR</button>
+          <button class="glow-btn" onclick="triggerQRCollapse()">🔲 Thu QR</button>
+          <button class="glow-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        </div>
+      </div>
+
+      <!-- ORBIT RINGS STATUS -->
+      <div class="panel">
+        <div class="panel-title">⭕ Trạng thái vòng orbit</div>
+        <div id="orbit-rings-status" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;">
+          <div style="font-size:.72rem;color:var(--dimmer);padding:6px 0;">Chưa có người tham gia</div>
+        </div>
+        <div style="margin-top:10px;font-size:.65rem;color:var(--dimmer);line-height:1.6;">
+          Mỗi vòng = 10 người · Đủ 10 → vòng xanh sáng lên trên màn chính
+        </div>
+      </div>
+
+      <!-- MÀU VÒNG TRÒN -->
+      <div class="panel">
+        <div class="panel-title">🎨 Vòng tròn trung tâm</div>
+
+        <!-- Kích cỡ vòng tròn — đưa lên đây cho dễ thấy -->
+        <div class="slider-row" style="margin-bottom:12px;">
+          <div class="slider-label">
+            📏 Kích cỡ vòng tròn
+            <span class="slider-val" id="wheel-size-val2">340px</span>
+          </div>
+          <input type="range" id="wheel-size2" min="160" max="560" value="340" step="10"
+            oninput="onWheelSize2(this.value)"/>
+        </div>
+
+        <!-- Preset colors -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
+          <button class="color-preset-btn active" id="cpb-grey" onclick="setWheelColor('grey')"
+            style="--cc:rgba(150,160,180,.35);">
+            ⬜ Xám nhạt
+          </button>
+          <button class="color-preset-btn" id="cpb-cyan" onclick="setWheelColor('cyan')"
+            style="--cc:rgba(0,200,248,.7);">
+            🔵 Xanh dương
+          </button>
+          <button class="color-preset-btn" id="cpb-red" onclick="setWheelColor('red')"
+            style="--cc:rgba(239,68,68,.7);">
+            🔴 Đỏ
+          </button>
+          <button class="color-preset-btn" id="cpb-green" onclick="setWheelColor('green')"
+            style="--cc:rgba(34,197,94,.7);">
+            🟢 Xanh lá
+          </button>
+          <button class="color-preset-btn" id="cpb-gold" onclick="setWheelColor('gold')"
+            style="--cc:rgba(255,215,0,.7);">
+            🟡 Vàng
+          </button>
+          <button class="color-preset-btn" id="cpb-pink" onclick="setWheelColor('pink')"
+            style="--cc:rgba(224,0,127,.7);">
+            🩷 Hồng
+          </button>
+        </div>
+
+        <!-- Glow mode -->
+        <div class="input-label" style="margin-bottom:6px;">Hiệu ứng vòng sáng</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+          <button class="glow-btn" id="rb-solid" onclick="setRingMode('solid')">🔆 Solid</button>
+          <button class="glow-btn" id="rb-pulse" onclick="setRingMode('pulse')">💫 Nhấp nháy</button>
+          <button class="glow-btn" id="rb-off"   onclick="setRingMode('off')">🌑 Tắt</button>
+        </div>
+
+        <!-- Overlay opacity (làm mờ ảnh) -->
+        <div class="input-label">Lớp phủ màu (che ảnh)</div>
+        <div class="slider-row" style="margin-bottom:0">
+          <div class="slider-label">
+            <span>Trong suốt ↔ Che hẳn</span>
+            <span class="slider-val" id="overlay-val">0%</span>
+          </div>
+          <input type="range" id="overlay-opacity" min="0" max="100" value="0" step="5"
+            oninput="onOverlayOpacity(this.value)"/>
+        </div>
+      </div>
+
+      <!-- CONTENT EDIT -->
+      <div class="panel">
+        <div class="panel-title">✏️ Nội dung</div>
+        <div class="input-label">Tiêu đề</div>
+        <input class="text-input" id="c-title" type="text" value="TOGETHER, WE WIN!"
+          oninput="updateContent()"/>
+        <div class="input-label">Phụ đề</div>
+        <input class="text-input" id="c-subtitle" type="text" value="ONE TEAM – ONE NESTLÉ"
+          oninput="updateContent()"/>
+        <div class="input-label">Tagline vòng tròn</div>
+        <input class="text-input" id="c-tagline" type="text" value="GOOD FOOD, GOOD LIFE"
+          oninput="updateContent()"/>
+        <div class="input-label">Footer text</div>
+        <input class="text-input" id="c-footer" type="text"
+          value="NESTLÉ VIETNAM FACTORY · BUILDING A STRONGER FUTURE TOGETHER"
+          oninput="updateContent()"/>
+      </div>
+
+      <!-- WHEEL SIZE + BG -->
+      <div class="panel">
+        <div class="panel-title">🎡 Vòng tròn & Background</div>
+        <div class="slider-row">
+          <div class="slider-label">
+            Kích cỡ vòng tròn
+            <span class="slider-val" id="wheel-size-val">340px</span>
+          </div>
+          <input type="range" id="wheel-size" min="160" max="560" value="340" step="10"
+            oninput="onWheelSize(this.value)"/>
+        </div>
+
+        <div class="input-label" style="margin-top:4px">🖼️ Ảnh trung tâm</div>
+        <div class="upload-zone" id="logo-upload-zone">
+          <input type="file" id="logo-file" accept="image/*" onchange="handleLogoUpload(event)"/>
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-txt"><strong>Nhấp</strong> hoặc kéo thả ảnh vào đây</div>
+        </div>
+        <div class="preview-wrap" id="logo-preview-wrap">
+          <img class="preview-img" id="logo-preview-img" src="" alt="" style="height:110px;object-fit:cover;"/>
+          <button class="preview-clear" onclick="clearLogo()">✕</button>
+        </div>
+        <div class="slider-row" style="margin-bottom:6px">
+          <div class="slider-label">
+            Zoom ảnh (lấp viền trắng)
+            <span class="slider-val" id="logo-zoom-val">100%</span>
+          </div>
+          <input type="range" id="logo-zoom" min="100" max="160" value="100" step="1"
+            oninput="onLogoZoom(this.value)"/>
+        </div>
+        <button class="glow-btn" style="width:100%;margin-bottom:8px" onclick="autoFitLogo()">
+          ✂️ Tự khít viền trắng
+        </button>
+
+        <div class="input-label">Background màn chính</div>
+        <div class="upload-zone" id="bg-upload-zone">
+          <input type="file" id="bg-file" accept="image/*" onchange="handleBgUpload(event)"/>
+          <div class="upload-icon">🌃</div>
+          <div class="upload-txt"><strong>Nhấp</strong> hoặc kéo thả ảnh nền</div>
+        </div>
+        <div class="preview-wrap" id="bg-preview-wrap">
+          <img class="preview-img" id="bg-preview-img" src="" alt=""/>
+          <button class="preview-clear" onclick="clearBg()">✕</button>
+        </div>
+      </div>
+
+      <!-- PARTICIPANT LIST -->
+      <div class="panel">
+        <div class="panel-title">👥 Danh sách người tham gia</div>
+        <input class="search-input" type="text" placeholder="🔍  Tìm tên..."
+          id="name-search" oninput="filterChips(this.value)"/>
+        <div class="name-chips" id="name-chips">
+          <div class="chips-empty">Chưa có người tham gia.</div>
+        </div>
+      </div>
+
+      <!-- DANGER -->
+      <div class="panel danger-panel">
+        <div class="panel-title">⚠️ Danger Zone</div>
+        <button class="danger-btn" onclick="openClearModal()">
+          🗑️ Xóa toàn bộ người tham gia
+        </button>
+        <button class="danger-btn" style="margin-top:7px;border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.07);"
+          onclick="if(confirm('Reset clap về 0?')) db.ref('claps/total').set(0).then(()=>showToast('👏 Đã reset clap'))">
+          👏 Reset clap về 0
+        </button>
+      </div>
+
+    </div><!-- end right-col -->
+  </div><!-- end admin-body -->
+</div><!-- end admin-ui -->
+
+<!-- CLEAR MODAL -->
+<div class="modal-back" id="clear-modal">
+  <div class="modal-box">
+    <h3>⚠️ Xác nhận xóa</h3>
+    <p>Bạn sắp xóa <strong id="del-count-text">tất cả</strong> người tham gia. Thao tác này không thể hoàn tác!</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeClearModal()">Hủy</button>
+      <button class="modal-ok" onclick="clearAll()">Xóa tất cả</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+// ╔═══════════════════════════════════════════╗
+// ║  FIREBASE CONFIG – PASTE YOUR CONFIG HERE ║
+// ╚═══════════════════════════════════════════╝
+const firebaseConfig =  {
+  apiKey: "AIzaSyDnh9ifqf83aiK3YqTAPU4lnWbEiwSHbCU",
+  authDomain: "nestle-lucky-wheel.firebaseapp.com",
+  databaseURL: "https://nestle-lucky-wheel-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "nestle-lucky-wheel",
+  storageBucket: "nestle-lucky-wheel.firebasestorage.app",
+  messagingSenderId: "353575911155",
+  appId: "1:353575911155:web:604bf934f15f32313a8186"
+};
+
+// ╔═══════════════════════════════════════════╗
+// ║  ADMIN PASSWORD – CHANGE THIS            ║
+// ╚═══════════════════════════════════════════╝
+const ADMIN_PW = "milo2026";
+
+// ═══════════════════════════════════
+// FIREBASE INIT
+// ═══════════════════════════════════
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ═══════════════════════════════════
+// PASSWORD
+// ═══════════════════════════════════
+function checkPw() {
+  const v = document.getElementById('pw-input').value;
+  if (v === ADMIN_PW) {
+    document.getElementById('pw-gate').style.display = 'none';
+    document.getElementById('admin-ui').classList.add('show');
+    initAdmin();
+  } else {
+    const inp = document.getElementById('pw-input');
+    document.getElementById('pw-err').textContent = '❌ Sai mật khẩu!';
+    inp.classList.add('shake');inp.value='';
+    setTimeout(()=>inp.classList.remove('shake'),400);
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('pw-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter')checkPw();
+    document.getElementById('pw-err').textContent='';
+  });
+});
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let allParticipants = {};
+let cdSeconds       = 0;
+let cdActive        = false;
+let cdInterval      = null;
+let cdTotalSeconds  = 0;
+let recentCount     = 0;
+let recentTimer     = null;
+
+// ═══════════════════════════════════
+// INIT ADMIN
+// ═══════════════════════════════════
+function initAdmin() {
+  // Participants listener
+  db.ref('participants').on('value', snap => {
+    const prev = Object.keys(allParticipants).length;
+    allParticipants = snap.val() || {};
+    const curr = Object.keys(allParticipants).length;
+    if (curr > prev) {
+      recentCount += (curr - prev);
+      clearTimeout(recentTimer);
+      recentTimer = setTimeout(() => { recentCount = 0; updateStats(); }, 60000);
+    }
+    updateStats();
+    renderChips('');
+  });
+
+  // Clap total
+  db.ref('claps/total').on('value', snap => {
+    const el = document.getElementById('st-clap');
+    if (el) el.textContent = snap.val() || 0;
+  });
+
+  // Settings listener (sync UI if changed elsewhere)
+  db.ref('settings').on('value', snap => {
+    const s = snap.val();
+    if (!s) return;
+    // sync glow buttons
+    if (s.glowMode) highlightGlowBtn(s.glowMode);
+    if (s.flashSpeed !== undefined) {
+      document.getElementById('flash-speed').value = s.flashSpeed;
+      document.getElementById('flash-speed-val').textContent = s.flashSpeed + 's';
+    }
+    if (s.rotateSpeed !== undefined) {
+      document.getElementById('rotate-speed').value = s.rotateSpeed;
+      document.getElementById('rotate-speed-val').textContent = s.rotateSpeed + 's';
+    }
+    if (s.rotating !== undefined) document.getElementById('rotating-toggle').checked = s.rotating;
+    if (s.blackout !== undefined) document.getElementById('blackout-toggle').checked = s.blackout;
+    if (s.wheelColor !== undefined) {
+      document.querySelectorAll('.color-preset-btn').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById('cpb-' + s.wheelColor);
+      if (btn) btn.classList.add('active');
+    }
+    if (s.ringMode !== undefined) {
+      ['solid','pulse','off'].forEach(m => {
+        const b = document.getElementById('rb-' + m);
+        if (b) b.classList.toggle('active', m === s.ringMode);
+      });
+    }
+    if (s.overlayOpacity !== undefined) {
+      document.getElementById('overlay-opacity').value = s.overlayOpacity;
+      document.getElementById('overlay-val').textContent = s.overlayOpacity + '%';
+    }
+    if (s.wheelLogoZoom !== undefined) {
+      document.getElementById('logo-zoom').value = s.wheelLogoZoom;
+      document.getElementById('logo-zoom-val').textContent = s.wheelLogoZoom + '%';
+    }
+    if (s.wheelSize !== undefined) {
+      document.getElementById('wheel-size').value = s.wheelSize;
+      document.getElementById('wheel-size-val').textContent = s.wheelSize + 'px';
+      const s2 = document.getElementById('wheel-size2');
+      const v2 = document.getElementById('wheel-size-val2');
+      if (s2) s2.value = s.wheelSize;
+      if (v2) v2.textContent = s.wheelSize + 'px';
+    }
+    if (s.bgOpacity !== undefined) {
+      const pct = Math.round(s.bgOpacity * 100);
+      document.getElementById('bg-opacity').value = pct;
+      document.getElementById('bg-opacity-val').textContent = pct + '%';
+    }
+    if (s.title    !== undefined) document.getElementById('c-title').value    = s.title;
+    if (s.subtitle !== undefined) document.getElementById('c-subtitle').value = s.subtitle;
+    if (s.wheelTagline!==undefined) document.getElementById('c-tagline').value = s.wheelTagline;
+    if (s.footerText !== undefined) document.getElementById('c-footer').value  = s.footerText;
+  });
+}
+
+// ═══════════════════════════════════
+// STATS
+// ═══════════════════════════════════
+function updateStats() {
+  const total = Object.keys(allParticipants).length;
+  document.getElementById('st-total').textContent  = total;
+  document.getElementById('st-recent').textContent = recentCount;
+  updateOrbitRings(total);
+}
+
+function updateOrbitRings(total) {
+  const el = document.getElementById('orbit-rings-status');
+  if (!el) return;
+  if (total === 0) {
+    el.innerHTML = '<div style="font-size:.72rem;color:var(--dimmer);padding:6px 0;">Chưa có người tham gia</div>';
+    return;
+  }
+  const PER_RING = 10;
+  const numRings = Math.ceil(total / PER_RING);
+  let html = '';
+  for (let ri = 0; ri < numRings; ri++) {
+    const start   = ri * PER_RING + 1;
+    const end     = Math.min((ri + 1) * PER_RING, total);
+    const count   = end - start + 1;
+    const isFull  = count >= PER_RING;
+    const pct     = Math.round((count / PER_RING) * 100);
+    html += `
+      <div style="
+        flex:1;min-width:80px;
+        background:${isFull ? 'rgba(0,200,248,.12)' : 'rgba(255,255,255,.04)'};
+        border:1.5px solid ${isFull ? 'rgba(0,200,248,.6)' : 'rgba(255,255,255,.1)'};
+        border-radius:9px;padding:7px 8px;
+        box-shadow:${isFull ? '0 0 12px rgba(0,200,248,.25)' : 'none'};
+        transition:all .4s;
+      ">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;
+          letter-spacing:.12em;color:${isFull ? 'var(--cyan)' : 'var(--dimmer)'};
+          text-transform:uppercase;margin-bottom:4px;">
+          ${isFull ? '✅' : '⭕'} Vòng ${ri + 1}
+        </div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;
+          color:${isFull ? 'var(--cyan2)' : '#fff'};line-height:1;">
+          ${count}<span style="font-size:.65rem;font-weight:400;color:var(--dimmer);">/${PER_RING}</span>
+        </div>
+        <div style="margin-top:5px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;">
+          <div style="height:100%;width:${pct}%;border-radius:2px;
+            background:${isFull ? 'linear-gradient(90deg,var(--cyan),var(--cyan2))' : 'rgba(0,200,248,.4)'};
+            transition:width .5s ease;"></div>
+        </div>
+      </div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════
+// GLOW
+// ═══════════════════════════════════
+function setGlow(mode) {
+  db.ref('settings/glowMode').set(mode);
+  highlightGlowBtn(mode);
+}
+function highlightGlowBtn(mode) {
+  ['flash','solid','off','reset'].forEach(m=>{
+    const btn = document.getElementById('gb-'+m);
+    if(btn) btn.classList.toggle('active', m===mode);
+  });
+}
+function onFlashSpeed(v) {
+  document.getElementById('flash-speed-val').textContent = parseFloat(v).toFixed(1)+'s';
+  db.ref('settings/flashSpeed').set(parseFloat(v));
+}
+function resetDefaults() {
+  db.ref('settings').update({
+    glowMode:'solid', flashSpeed:1, rotateSpeed:20, rotating:true,
+    blackout:false, bgOpacity:0.55
+  });
+}
+
+// ═══════════════════════════════════
+// ROTATION
+// ═══════════════════════════════════
+function onRotateSpeed(v) {
+  document.getElementById('rotate-speed-val').textContent = v+'s';
+  db.ref('settings/rotateSpeed').set(parseInt(v));
+}
+function onRotating(v) { db.ref('settings/rotating').set(v); }
+
+// ═══════════════════════════════════
+// BLACKOUT + BG OPACITY
+// ═══════════════════════════════════
+function onBlackout(v) { db.ref('settings/blackout').set(v); }
+function onBgOpacity(v) {
+  document.getElementById('bg-opacity-val').textContent = v+'%';
+  db.ref('settings/bgOpacity').set(parseFloat(v)/100);
+}
+
+// ═══════════════════════════════════
+// WHEEL SIZE
+// ═══════════════════════════════════
+function onWheelSize(v) {
+  document.getElementById('wheel-size-val').textContent = v+'px';
+  // sync slider 2
+  const s2 = document.getElementById('wheel-size2');
+  const v2 = document.getElementById('wheel-size-val2');
+  if (s2) s2.value = v;
+  if (v2) v2.textContent = v+'px';
+  db.ref('settings/wheelSize').set(parseInt(v));
+}
+function onWheelSize2(v) {
+  document.getElementById('wheel-size-val2').textContent = v+'px';
+  // sync slider gốc
+  const s1 = document.getElementById('wheel-size');
+  const v1 = document.getElementById('wheel-size-val');
+  if (s1) s1.value = v;
+  if (v1) v1.textContent = v+'px';
+  db.ref('settings/wheelSize').set(parseInt(v));
+}
+
+// ═══════════════════════════════════
+// CONTENT
+// ═══════════════════════════════════
+let contentTimer = null;
+function updateContent() {
+  clearTimeout(contentTimer);
+  contentTimer = setTimeout(() => {
+    db.ref('settings').update({
+      title:       document.getElementById('c-title').value,
+      subtitle:    document.getElementById('c-subtitle').value,
+      wheelTagline:document.getElementById('c-tagline').value,
+      footerText:  document.getElementById('c-footer').value,
+    });
+  }, 600);
+}
+
+// ═══════════════════════════════════
+// IMAGE UPLOADS (to Firebase as base64)
+// Note: large images may hit Firebase 10MB limit.
+// For production, use Firebase Storage instead.
+// ═══════════════════════════════════
+function resizeAndEncode(file, maxW, maxH, cb) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = h*(maxW/w); w = maxW; }
+      if (h > maxH) { w = w*(maxH/h); h = maxH; }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      cb(canvas.toDataURL('image/png'));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleLogoUpload(e) {
+  const f = e.target.files[0]; if(!f) return;
+  resizeAndEncode(f, 800, 800, data => {
+    document.getElementById('logo-preview-img').src = data;
+    document.getElementById('logo-preview-wrap').style.display = 'block';
+    document.getElementById('logo-upload-zone').style.display  = 'none';
+    db.ref('settings/wheelLogoData').set(data);
+    showToast('✅ Logo đã cập nhật!');
+  });
+}
+function clearLogo() {
+  document.getElementById('logo-preview-wrap').style.display = 'none';
+  document.getElementById('logo-upload-zone').style.display  = 'block';
+  document.getElementById('logo-file').value = '';
+  db.ref('settings/wheelLogoData').set(null);
+  showToast('🗑️ Đã xóa logo');
+}
+
+function handleBgUpload(e) {
+  const f = e.target.files[0]; if(!f) return;
+  resizeAndEncode(f, 1920, 1080, data => {
+    document.getElementById('bg-preview-img').src = data;
+    document.getElementById('bg-preview-wrap').style.display = 'block';
+    document.getElementById('bg-upload-zone').style.display  = 'none';
+    db.ref('settings/bgImageData').set(data);
+    showToast('✅ Background đã cập nhật!');
+  });
+}
+function clearBg() {
+  document.getElementById('bg-preview-wrap').style.display = 'none';
+  document.getElementById('bg-upload-zone').style.display  = 'block';
+  document.getElementById('bg-file').value = '';
+  db.ref('settings/bgImageData').set(null);
+  showToast('🗑️ Đã xóa background');
+}
+
+// Drag-drop support
+['logo-upload-zone','bg-upload-zone'].forEach(id => {
+  const z = document.getElementById(id);
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('dragover'); });
+  z.addEventListener('dragleave', () => z.classList.remove('dragover'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) {
+      const isLogo = id==='logo-upload-zone';
+      const fakeEvt = { target: { files: [f] } };
+      isLogo ? handleLogoUpload(fakeEvt) : handleBgUpload(fakeEvt);
+    }
+  });
+});
+
+// ═══════════════════════════════════
+// COUNTDOWN
+// ═══════════════════════════════════
+function setCountdown(secs) {
+  cdSeconds = secs; cdTotalSeconds = secs;
+  updateCdDisplay();
+}
+function toggleCountdown() {
+  if (!cdActive) {
+    if (cdSeconds <= 0) { showToast('⚠️ Chọn thời gian trước!'); return; }
+    startCountdown();
+  } else {
+    pauseCountdown();
+  }
+}
+function startCountdown() {
+  cdActive = true;
+  const endTime = Date.now() + cdSeconds * 1000;
+  db.ref('settings/countdown').set({ active: true, endTime });
+  document.getElementById('cd-start-btn').textContent = '⏸ Tạm dừng';
+  clearInterval(cdInterval);
+  cdInterval = setInterval(() => {
+    cdSeconds = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+    updateCdDisplay();
+    updateCircleTimer();
+    if (cdSeconds <= 0) { stopCountdown(); showToast('⏰ Hết giờ!'); }
+  }, 500);
+}
+function pauseCountdown() {
+  cdActive = false;
+  clearInterval(cdInterval);
+  db.ref('settings/countdown').set({ active: false, endTime: null });
+  document.getElementById('cd-start-btn').textContent = '▶ Tiếp tục';
+}
+function stopCountdown() {
+  cdActive = false;
+  clearInterval(cdInterval);
+  db.ref('settings/countdown').set({ active: false, endTime: null });
+  document.getElementById('cd-start-btn').textContent = '▶ Bắt đầu';
+}
+function updateCdDisplay() {
+  const m = Math.floor(cdSeconds/60);
+  const s = cdSeconds % 60;
+  document.getElementById('cd-display').textContent =
+    String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function updateCircleTimer() {
+  const circ = 2 * Math.PI * 35; // r=35
+  const pct  = cdTotalSeconds > 0 ? cdSeconds / cdTotalSeconds : 0;
+  const offset = circ * (1 - pct);
+  document.getElementById('timer-circle').style.strokeDasharray  = circ;
+  document.getElementById('timer-circle').style.strokeDashoffset = offset;
+}
+
+// ═══════════════════════════════════
+// PARTICIPANT CHIPS
+// ═══════════════════════════════════
+function renderChips(filter) {
+  const el      = document.getElementById('name-chips');
+  const entries = Object.entries(allParticipants);
+  const filtered = filter
+    ? entries.filter(([,p])=>p.name.toLowerCase().includes(filter.toLowerCase()))
+    : entries;
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="chips-empty">${filter?'Không tìm thấy.':'Chưa có người tham gia.'}</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(([key,p]) => `
+    <div class="nchip" id="chip-${key}">
+      ${p.name}
+      <span class="nchip-role">(${p.role||''})</span>
+      <button class="nchip-del" onclick="deleteName('${key}','${(p.name||'').replace(/'/g,"\\'")}')">✕</button>
+    </div>
+  `).join('');
+}
+function filterChips(v) { renderChips(v); }
+async function deleteName(key,name) {
+  if (!confirm(`Xóa "${name}"?`)) return;
+  await db.ref('participants/'+key).remove();
+  showToast(`🗑️ Đã xóa "${name}"`);
+}
+function openClearModal() {
+  const n = Object.keys(allParticipants).length;
+  document.getElementById('del-count-text').textContent = n+' người';
+  document.getElementById('clear-modal').classList.add('open');
+}
+function closeClearModal() { document.getElementById('clear-modal').classList.remove('open'); }
+async function clearAll() {
+  closeClearModal();
+  await db.ref('participants').remove();
+  showToast('🗑️ Đã xóa tất cả người tham gia');
+}
+
+// ═══════════════════════════════════
+// UTILS
+// ═══════════════════════════════════
+// ═══════════════════════════════════
+// QR EXPAND CONTROL (admin triggers on main screen)
+// ═══════════════════════════════════
+function triggerQRExpand() {
+  db.ref('settings/qrExpand').set({ expand: true,  ts: Date.now() });
+  showToast('📱 Đã phóng to QR trên màn chính!');
+}
+function triggerQRCollapse() {
+  db.ref('settings/qrExpand').set({ expand: false, ts: Date.now() });
+}
+
+// ═══════════════════════════════════
+// WHEEL COLOR & RING MODE
+// ═══════════════════════════════════
+const WHEEL_COLORS = {
+  grey:  { r:'150,160,180', glow:.35, glow2:.2  },
+  cyan:  { r:'0,200,248',   glow:.7,  glow2:.45 },
+  red:   { r:'239,68,68',   glow:.7,  glow2:.45 },
+  green: { r:'34,197,94',   glow:.7,  glow2:.45 },
+  gold:  { r:'255,215,0',   glow:.7,  glow2:.45 },
+  pink:  { r:'224,0,127',   glow:.7,  glow2:.45 },
+};
+
+function setWheelColor(key) {
+  // Highlight button
+  document.querySelectorAll('.color-preset-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('cpb-' + key);
+  if (btn) btn.classList.add('active');
+  db.ref('settings/wheelColor').set(key);
+}
+
+function setRingMode(mode) {
+  ['solid','pulse','off'].forEach(m => {
+    const b = document.getElementById('rb-' + m);
+    if (b) b.classList.toggle('active', m === mode);
+  });
+  db.ref('settings/ringMode').set(mode);
+}
+
+function onOverlayOpacity(v) {
+  document.getElementById('overlay-val').textContent = v + '%';
+  db.ref('settings/overlayOpacity').set(parseInt(v));
+}
+
+// ═══════════════════════════════════
+// LOGO ZOOM
+// ═══════════════════════════════════
+function onLogoZoom(v) {
+  document.getElementById('logo-zoom-val').textContent = v + '%';
+  db.ref('settings/wheelLogoZoom').set(parseInt(v));
+}
+
+function autoFitLogo() {
+  const img = document.getElementById('logo-preview-img');
+  if (!img.src || img.style.display === 'none') {
+    showToast('⚠️ Upload ảnh trước!'); return;
+  }
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const tmpImg = new Image();
+  tmpImg.onload = function() {
+    canvas.width  = tmpImg.naturalWidth;
+    canvas.height = tmpImg.naturalHeight;
+    ctx.drawImage(tmpImg, 0, 0);
+    const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    const W = canvas.width, H = canvas.height;
+    let minX=W, minY=H, maxX=0, maxY=0;
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++) {
+      const i=(y*W+x)*4;
+      if (data[i+3]>10 && !(data[i]>235&&data[i+1]>235&&data[i+2]>235)) {
+        if(x<minX)minX=x; if(x>maxX)maxX=x;
+        if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+    if (maxX<=minX||maxY<=minY) { showToast('Không tìm thấy viền!'); return; }
+    const z = Math.min(Math.round(Math.min(W/(maxX-minX), H/(maxY-minY))*100), 160);
+    document.getElementById('logo-zoom').value = z;
+    document.getElementById('logo-zoom-val').textContent = z + '%';
+    db.ref('settings/wheelLogoZoom').set(z);
+    showToast('✅ Đã khít viền trắng! Zoom: ' + z + '%');
+  };
+  tmpImg.src = img.src;
+}
+
+let autoFireInterval = null;
+function fireOnce() {
+  db.ref('settings/firework').set({ active:true, ts:Date.now() });
+  showToast('🎆 Đã bắn pháo hoa!');
+}
+function fireAuto() {
+  stopFire();
+  fireOnce();
+  autoFireInterval = setInterval(fireOnce, 4000);
+  showToast('🔁 Pháo hoa tự động!');
+}
+function stopFire() {
+  clearInterval(autoFireInterval);
+  db.ref('settings/firework').set({ active:false, ts:Date.now() });
+  showToast('⏹ Đã dừng');
+}
+
+function openMain() { window.open(location.origin+'/index.html','_blank'); }
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+let toastTimer=null;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+</script>
+</body>
+</html>

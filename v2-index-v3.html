@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Together, We Win!</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+/* ════════════════════════════════════════
+   RESET & ROOT
+════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --navy:#030b1f;
+  --deep:#050f2e;
+  --blue:#0a2060;
+  --cyan:#00c8f8;
+  --cyan2:#00f0ff;
+  --pink:#e0007f;
+  --gold:#ffd700;
+  --green:#22c55e;
+  --wheel-size: 340px;
+  /* ring glow colors – controlled by admin */
+  --ring-r:0,200,248;
+  --ring-shadow-lo: 0 0 0 3px rgba(var(--ring-r),.6), 0 0 45px 15px rgba(var(--ring-r),.6), 0 0 110px 45px rgba(var(--ring-r),.28);
+  --ring-shadow-hi: 0 0 0 6px rgba(var(--ring-r),1), 0 0 75px 25px rgba(var(--ring-r),.95), 0 0 150px 60px rgba(var(--ring-r),.5);
+  --ring-shadow-solid: 0 0 0 4px rgba(var(--ring-r),.8), 0 0 55px 18px rgba(var(--ring-r),.75), 0 0 120px 50px rgba(var(--ring-r),.4);
+}
+html,body{
+  width:100%;height:100%;overflow:visible;
+  font-family:'Barlow',sans-serif;
+  background:var(--navy);
+  color:#fff;
+  user-select:none;
+}
+
+/* ════════════════════════════════════════
+   BACKGROUND LAYERS
+════════════════════════════════════════ */
+#bg-base{
+  position:fixed;inset:0;z-index:0;
+  background:linear-gradient(180deg,#e8eef8 0%,#d0daf0 50%,#c8d4ee 100%);
+  transition:opacity .5s;
+}
+#bg-image{
+  position:fixed;inset:0;z-index:1;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  opacity:0;
+  transition:opacity .5s;
+}
+#blackout{
+  position:fixed;inset:0;z-index:150;
+  background:#000;
+  opacity:0;pointer-events:none;
+  transition:opacity .6s ease;
+}
+#blackout.on{opacity:1;pointer-events:all;}
+
+/* glow pulse effect */
+#glow-layer{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  opacity:0;transition:opacity .4s;
+}
+#glow-layer.flashing{animation:glowFlash var(--flash-speed,1s) ease-in-out infinite;}
+#glow-layer.solid{animation:none;opacity:1;}
+#glow-layer.off{animation:none;opacity:0;}
+@keyframes glowFlash{0%,100%{opacity:.15;}50%{opacity:1;}}
+
+/* stars / particles *
+#star-layer{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+.star{
+  position:absolute;border-radius:50%;
+  background:#fff;opacity:0;
+  animation:twinkle linear infinite;
+}
+@keyframes twinkle{
+  0%,100%{opacity:0;transform:scale(.5);}
+  50%{opacity:.7;transform:scale(1);}
+}
+
+/* scanlines */
+.scanlines{
+  position:fixed;inset:0;z-index:3;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);
+  opacity: 0;
+}
+
+/* ════════════════════════════════════════
+   HEADER
+════════════════════════════════════════ */
+#header{
+  position:fixed;top:0;left:0;right:0;z-index:30;
+  padding:14px 20px 0;
+  display:flex;flex-direction:column;align-items:center;
+  pointer-events:none;
+}
+#title-main{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(2rem,5.5vw,4rem);
+  font-weight:900;letter-spacing:.08em;
+  color:#0a1a4a;
+  text-shadow:0 2px 8px rgba(0,0,0,.12);
+  line-height:1;text-transform:uppercase;
+  transition:all .4s;
+}
+#title-sub{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(.7rem,1.5vw,1.05rem);
+  font-weight:600;letter-spacing:.25em;
+  color:rgba(10,26,74,.55);
+  text-transform:uppercase;margin-top:2px;
+  transition:all .4s;
+}
+
+/* ════════════════════════════════════════
+   QR PANEL (top-left)
+════════════════════════════════════════ */
+#qr-panel{
+  position:fixed;top:12px;left:12px;z-index:40;
+  background:rgba(255,255,255,.88);
+  border:1px solid rgba(0,200,248,.35);
+  border-radius:12px;
+  padding:10px;
+  width:148px;
+  cursor:pointer;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  backdrop-filter:blur(8px);
+  box-shadow:0 4px 20px rgba(0,0,0,.12);
+}
+#qr-panel:hover{ box-shadow:0 6px 28px rgba(0,200,248,.25); }
+#qr-panel.expanded{
+  width:280px;
+  padding:16px;
+  box-shadow:0 8px 40px rgba(0,200,248,.3);
+  cursor:default;
+}
+#qr-label{
+  font-family:'Rajdhani',sans-serif;
+  font-size:.58rem;font-weight:700;letter-spacing:.18em;
+  color:#0a6080;text-transform:uppercase;
+  margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:5px;
+}
+#qr-expand-hint{
+  font-size:.55rem;color:rgba(0,150,200,.6);
+  font-weight:400;letter-spacing:.05em;
+  transition:opacity .2s;
+}
+#qr-panel.expanded #qr-expand-hint{ opacity:0; }
+#qr-close-btn{
+  display:none;
+  background:rgba(0,200,248,.15);border:1px solid rgba(0,200,248,.3);
+  border-radius:6px;padding:3px 8px;font-size:.6rem;font-weight:700;
+  color:#0a6080;cursor:pointer;margin-top:8px;width:100%;
+  font-family:'Rajdhani',sans-serif;letter-spacing:.1em;
+  transition:all .2s;
+}
+#qr-panel.expanded #qr-close-btn{ display:block; }
+#qr-close-btn:hover{ background:rgba(0,200,248,.25); }
+#qr-code-wrap{
+  background:#fff;padding:5px;border-radius:6px;
+  display:block;width:126px;height:126px;overflow:hidden;
+  transition:all .3s ease;
+  margin:0 auto;
+}
+#qr-panel.expanded #qr-code-wrap{
+  width:246px;height:246px;
+}
+#qr-code-wrap canvas,#qr-code-wrap img{ width:100%!important;height:100%!important; }
+#qr-url{
+  font-size:.52rem;color:rgba(10,60,100,.45);
+  margin-top:5px;word-break:break-all;line-height:1.4;
+  text-align:center;
+}
+#qr-count{
+  margin-top:4px;font-family:'Rajdhani',sans-serif;
+  font-size:.68rem;font-weight:700;letter-spacing:.1em;
+  color:#0a6080;text-align:center;
+}
+
+/* ════════════════════════════════════════
+   NAME LIST SIDEBAR (left)
+════════════════════════════════════════ */
+#name-list-panel{
+  display: none
+  position:fixed;top:175px;left:12px;z-index:40;
+  background:rgba(5,15,46,.75);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
+  padding:8px 0;
+  width:155px;
+  max-height:calc(100vh - 210px);
+  overflow:hidden;
+}
+#list-header{
+  font-family:'Rajdhani',sans-serif;
+  font-size:.6rem;font-weight:700;letter-spacing:.2em;
+  color:rgba(255,255,255,.35);text-transform:uppercase;
+  padding:0 10px 6px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  margin-bottom:4px;
+}
+#name-list-scroll{
+  overflow-y:auto;max-height:calc(100vh - 250px);
+}
+#name-list-scroll::-webkit-scrollbar{width:2px;}
+#name-list-scroll::-webkit-scrollbar-thumb{background:rgba(0,200,248,.2);border-radius:1px;}
+
+.list-item{
+  display:flex;align-items:center;gap:7px;
+  padding:5px 10px;
+  font-size:.72rem;color:rgba(255,255,255,.7);
+  border-bottom:1px solid rgba(255,255,255,.03);
+}
+.list-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+}
+.list-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.list-role{font-size:.58rem;color:rgba(255,255,255,.28);}
+
+/* ════════════════════════════════════════
+   COUNTDOWN (center top)
+════════════════════════════════════════ */
+#countdown-display{
+  position:fixed;top:85px;left:50%;transform:translateX(-50%);
+  z-index:35;
+  font-family:'Rajdhani',sans-serif;
+  font-size:clamp(2.5rem,7vw,5.5rem);
+  font-weight:700;letter-spacing:.06em;
+  color:var(--cyan2);
+  text-shadow:0 0 30px rgba(0,200,248,.8),0 0 60px rgba(0,200,248,.4);
+  display:none ! important;
+  pointer-events:none;
+}
+#countdown-display.visible{display:none !important;}
+
+/* ════════════════════════════════════════
+   WHEEL AREA
+════════════════════════════════════════ */
+#wheel-area{
+  position:fixed;
+  top:50%;left:50%;
+  transform:translate(-50% + 80px,calc(-50% -30px));
+  z-index:20;
+  /* extra room for orbiting names */
+  width:calc(var(--wheel-size) + 700px);
+  height:calc(var(--wheel-size) + 700px);
+  cursor:grab;
+}
+
+/* Center circle */
+#center-wheel{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(calc(-50% + 120px),-50%);
+  width:var(--wheel-size);
+  height:var(--wheel-size);
+  border-radius:50%;
+  background:#050f2e;
+  border:none;
+  overflow:hidden;
+  box-shadow:
+    0 0 0 3px rgba(0,200,248,.6),
+    0 0 45px 15px rgba(0,200,248,.6),
+    0 0 110px 45px rgba(0,200,248,.28);
+  animation:ringPulse 2s ease-in-out infinite;
+}
+@keyframes ringPulse{
+  0%,100%{box-shadow:var(--ring-shadow-lo);}
+  50%{box-shadow:var(--ring-shadow-hi);}
+}
+@keyframes ringPulseOff{
+  0%,100%{box-shadow:none;}
+}
+
+/* wheel inner image or text */
+#wheel-inner{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:0;
+  text-align:center;
+  position:relative;z-index:1;
+}
+#wheel-logo-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  position:absolute;
+  inset:0;
+  border-radius:0;
+  display:none;
+  filter:brightness(1.08) contrast(1.06) saturate(1.1);
+  image-rendering:high-quality;
+  z-index:2;
+}
+#wheel-tagline{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(.7rem,1.8vw,1rem);
+  font-weight:300;font-style:italic;
+  color:rgba(255,255,255,.55);
+  letter-spacing:.1em;
+  margin-top:6px;
+  transition:all .3s;
+}
+
+/* outer ring decorations */
+.ring-deco{
+  position:absolute;top:50%;left:50%;
+  border-radius:50%;border:1px solid rgba(0,200,248,.08);
+  pointer-events:none;transform:translate(-50%,-50%);
+}
+
+/* ── Orbit completion ring (hiện khi đủ 10 người) ── */
+.orbit-ring{
+  position:absolute;
+  top:50%;left:50%;
+  border-radius:50%;
+  pointer-events:none;
+  transform:translate(calc(-50% + 120px),-50%);
+  border:2px solid rgba(0,200,248,.0);
+  background:transparent;
+  /* smooth resize khi vòng mới xuất hiện */
+  transition:width .7s cubic-bezier(.4,0,.2,1),
+             height .7s cubic-bezier(.4,0,.2,1),
+             border-color .8s ease,
+             box-shadow .8s ease,
+             opacity .6s ease;
+  opacity:0;
+}
+.orbit-ring.complete{
+  border-color:rgba(0,200,248,.75);
+  box-shadow:
+    0 0 0 1px rgba(0,200,248,.15),
+    0 0 18px 4px rgba(0,200,248,.55),
+    0 0 40px 10px rgba(0,200,248,.25),
+    inset 0 0 20px rgba(0,200,248,.08);
+  opacity:1;
+  animation:orbitRingPulse 2.5s ease-in-out infinite;
+}
+.orbit-ring.complete.ring-idx-1{ border-color:rgba(0,240,255,.7); animation-delay:.4s; }
+.orbit-ring.complete.ring-idx-2{ border-color:rgba(56,189,248,.7); animation-delay:.8s; }
+.orbit-ring.complete.ring-idx-3{ border-color:rgba(103,232,249,.7); animation-delay:1.2s; }
+.orbit-ring.complete.ring-idx-4{ border-color:rgba(34,211,238,.7); animation-delay:1.6s; }
+.orbit-ring.complete.ring-idx-5{ border-color:rgba(6,182,212,.7);  animation-delay:2.0s; }
+.orbit-ring.complete.ring-idx-6{ border-color:rgba(14,165,233,.7); animation-delay:2.4s; }
+
+@keyframes orbitRingPulse{
+  0%,100%{ box-shadow:
+    0 0 0 1px rgba(0,200,248,.12),
+    0 0 16px 4px rgba(0,200,248,.45),
+    0 0 36px 8px rgba(0,200,248,.2),
+    inset 0 0 16px rgba(0,200,248,.06);
+  }
+  50%{ box-shadow:
+    0 0 0 2px rgba(0,200,248,.25),
+    0 0 28px 8px rgba(0,200,248,.75),
+    0 0 60px 18px rgba(0,200,248,.35),
+    inset 0 0 30px rgba(0,200,248,.14);
+  }
+}
+
+/* Spark burst khi vừa đủ 10 */
+@keyframes sparkIn{
+  0%  { opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(.6); }
+  60% { opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(1.06); }
+  100%{ opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(1); }
+}
+.orbit-ring.spark{
+  animation:sparkIn .6s cubic-bezier(.34,1.56,.64,1) forwards,
+            orbitRingPulse 2.5s ease-in-out 0.6s infinite;
+}
+
+/* ════════════════════════════════════════
+   ORBIT CANVAS (name bubbles)
+════════════════════════════════════════ */
+#orbit-canvas{
+  position:absolute;inset:0;
+  /* names rendered here via JS */
+}
+
+/* Name bubble pill */
+.name-bubble{
+  position:absolute;
+  display:flex;align-items:center;gap:5px;
+  border-radius:100px;
+  padding:5px 12px 5px 6px;
+  white-space:nowrap;
+  font-family:'Barlow',sans-serif;
+  font-size:clamp(.68rem,1.2vw,.85rem);
+  font-weight:500;
+  color:#fff;
+  background:rgba(5,15,50,.8);
+  border:1.5px solid;
+  box-shadow:0 0 12px rgba(0,0,0,.4);
+  transform:translate(-50%,-50%);
+  cursor:default;
+  transition:box-shadow .3s;
+  pointer-events:none;
+}
+.name-bubble:hover{box-shadow:0 0 20px currentColor;}
+.bubble-avatar{
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;flex-shrink:0;
+  color:#fff;
+}
+
+/* ════════════════════════════════════════
+   JOIN TOAST
+════════════════════════════════════════ */
+#join-toast{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);
+  z-index:80;
+  background:rgba(255,255,255,.95);
+  border:1px solid var(--cyan);border-radius:100px;
+  padding:10px 24px;
+  font-family:'Rajdhani',sans-serif;
+  font-size:.95rem;font-weight:600;letter-spacing:.06em;
+  color:#0a1a4a;
+  box-shadow:0 0 20px rgba(0,200,248,.35);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+#join-toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+#footer{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  padding:8px 20px;
+  text-align:center;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(.55rem,1vw,.72rem);
+  font-weight:400;letter-spacing:.22em;
+  color:rgba(10,26,74,.35);text-transform:uppercase;
+  pointer-events:none;
+}
+
+/* ════════════════════════════════════════
+   HOTKEY HINT
+════════════════════════════════════════ */
+#hotkey-hint{
+  position:fixed;bottom:24px;right:16px;z-index:35;
+  font-size:.6rem;color:rgba(10,26,74,.2);
+  font-family:'Barlow',sans-serif;letter-spacing:.06em;
+}
+
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND LAYERS -->
+<div id="bg-base"></div>
+<div id="bg-image"></div>
+<div id="glow-layer"></div>
+<div id="star-layer"></div>
+<div class="scanlines"></div>
+<div id="blackout"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="title-main">TOGETHER, WE WIN!</div>
+  <div id="title-sub">ONE TEAM – ONE NESTLÉ</div>
+</div>
+
+<!-- QR PANEL -->
+<div id="qr-panel">
+  <div id="qr-label">
+    📱 Scan QR Tham Gia
+    <span id="qr-expand-hint">tap to expand</span>
+  </div>
+  <div id="qr-code-wrap"></div>
+  <div id="qr-url"></div>
+  <div id="qr-count">0 tham gia</div>
+  <button id="qr-close-btn" onclick="collapseQR(event)">✕ Thu nhỏ</button>
+</div>
+
+<!-- NAME LIST SIDEBAR -->
+<div id="name-list-panel">
+  <div id="list-header">Danh sách (<span id="list-count">0</span>)</div>
+  <div id="name-list-scroll"></div>
+</div>
+
+<!-- COUNTDOWN -->
+<div id="countdown-display" id="countdown-display">00:00</div>
+
+<!-- WHEEL AREA -->
+<div id="wheel-area">
+  <!-- Ring decorations -->
+  <div class="ring-deco" style="width:calc(var(--wheel-size) + 60px);height:calc(var(--wheel-size) + 60px)"></div>
+  <div class="ring-deco" style="width:calc(var(--wheel-size) + 120px);height:calc(var(--wheel-size) + 120px)"></div>
+  <div class="ring-deco" style="width:calc(var(--wheel-size) + 200px);height:calc(var(--wheel-size) + 200px)"></div>
+
+  <!-- Center circle -->
+  <div id="center-wheel">
+    <div id="wheel-inner">
+      <img id="wheel-logo-img" src="" alt="logo"/>
+      <div id="wheel-tagline">GOOD FOOD, GOOD LIFE</div>
+    </div>
+  </div>
+
+  <!-- Color overlay — phủ TOÀN BỘ vòng tròn -->
+  <div id="wheel-overlay" style="
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(calc(-50% + 120px), -50%);
+    width:var(--wheel-size);
+    height:var(--wheel-size);
+    border-radius:50%;
+    background:transparent;
+    pointer-events:none;
+    z-index:25;
+    transition:background 0.5s ease, box-shadow 0.5s ease;
+  "></div>
+
+  <!-- Orbit canvas -->
+  <div id="orbit-canvas"></div>
+</div>
+
+<!-- JOIN TOAST -->
+<div id="join-toast">🌟 <span id="toast-name">Người mới</span> đã tham gia!</div>
+
+<!-- CLAP COUNTER -->
+<div id="clap-display" style="
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;
+  color:rgba(0,200,248,.7);letter-spacing:.08em;
+  text-shadow:0 0 10px rgba(0,200,248,.4);
+  opacity:0;transition:opacity .5s;
+  pointer-events:none;
+">0 👏</div>
+
+<!-- FOOTER -->
+<div id="footer" id="footer-text">NESTLÉ VIETNAM FACTORY · BUILDING A STRONGER FUTURE TOGETHER</div>
+
+<!-- HOTKEY HINT -->
+<div id="hotkey-hint">Ctrl+Shift+B = Màn đen</div>
+
+<!-- ════════════════════════════════════════
+     FIREBASE CONFIG + JS
+════════════════════════════════════════ -->
+<script>
+// ╔═══════════════════════════════════════════╗
+// ║  FIREBASE CONFIG – PASTE YOUR CONFIG HERE ║
+// ╚═══════════════════════════════════════════╝
+const firebaseConfig = {
+  apiKey: "AIzaSyDnh9ifqf83aiK3YqTAPU4lnWbEiwSHbCU",
+  authDomain: "nestle-lucky-wheel.firebaseapp.com",
+  databaseURL: "https://nestle-lucky-wheel-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "nestle-lucky-wheel",
+  storageBucket: "nestle-lucky-wheel.firebasestorage.app",
+  messagingSenderId: "353575911155",
+  appId: "1:353575911155:web:604bf934f15f32313a8186"
+};
+
+
+// ╔═══════════════════════════════════════════╗
+// ║  JOIN PAGE URL – change after deploying   ║
+// ╚═══════════════════════════════════════════╝
+const JOIN_URL = 'https://spontaneous-figolla-1ea875.netlify.app/v2-join.html';
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let participants   = {};   // key → {name,color,role}
+let orbitAngle     = 0;    // degrees, increases each frame
+let rotateSpeed    = 20;   // seconds per full revolution
+let isRotating     = true;
+let lastTs         = null;
+let animId         = null;
+let wheelSizePx    = 340;
+let knownKeys      = new Set();
+let countdownEnd   = null;
+let countdownTimer = null;
+
+// Name bubble color palette
+const COLORS = [
+  {border:'#00c8f8',bg:'rgba(0,200,248,.18)',dot:'#00c8f8'},
+  {border:'#00f0ff',bg:'rgba(0,240,255,.15)',dot:'#00f0ff'},
+  {border:'#38bdf8',bg:'rgba(56,189,248,.18)',dot:'#38bdf8'},
+  {border:'#67e8f9',bg:'rgba(103,232,249,.15)',dot:'#67e8f9'},
+  {border:'#06b6d4',bg:'rgba(6,182,212,.18)',dot:'#06b6d4'},
+  {border:'#22d3ee',bg:'rgba(34,211,238,.16)',dot:'#22d3ee'},
+  {border:'#a5f3fc',bg:'rgba(165,243,252,.13)',dot:'#a5f3fc'},
+  {border:'#0ea5e9',bg:'rgba(14,165,233,.18)',dot:'#0ea5e9'},
+];
+const ROLE_COLORS = {
+  'Admin':   {border:'#e0007f',bg:'rgba(224,0,127,.15)',dot:'#e0007f'},
+  'default': null,
+};
+
+function getColor(idx, role) {
+  if (role && ROLE_COLORS[role]) return ROLE_COLORS[role];
+  return COLORS[idx % COLORS.length];
+}
+
+// ════════════════════════════════════════
+// QR CODE
+// ════════════════════════════════════════
+function buildQR() {
+  const el = document.getElementById('qr-code-wrap');
+  el.innerHTML = '';
+  try {
+    new QRCode(el, { text: JOIN_URL, width:128, height:128,
+      colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
+  } catch(e) {
+    el.style.cssText='display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#555;word-break:break-all;padding:4px;background:#fff;';
+    el.textContent = JOIN_URL;
+  }
+  document.getElementById('qr-url').textContent = JOIN_URL.replace('https://','').replace('http://','');
+}
+
+// ════════════════════════════════════════
+// STARS
+// ════════════════════════════════════════
+function spawnStars() {
+  const layer = document.getElementById('star-layer');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2.5 + 0.5;
+    s.style.cssText = `
+      width:${sz}px;height:${sz}px;
+      left:${Math.random()*100}%;
+      top:${Math.random()*100}%;
+      animation-duration:${Math.random()*4+2}s;
+      animation-delay:${Math.random()*5}s;
+    `;
+    layer.appendChild(s);
+  }
+}
+
+// ════════════════════════════════════════
+// WHEEL SIZE
+// ════════════════════════════════════════
+function setWheelSize(px) {
+  wheelSizePx = px;
+  document.documentElement.style.setProperty('--wheel-size', px + 'px');
+  // update ring decos
+  const rings = document.querySelectorAll('.ring-deco');
+  const offsets = [60, 120, 200];
+  rings.forEach((r, i) => {
+    const s = (px + offsets[i]) + 'px';
+    r.style.width = s; r.style.height = s;
+  });
+  // resize orbit area
+  const wa = document.getElementById('wheel-area');
+  const total = (px + 700) + 'px'; // rộng hơn cho multi-ring
+  wa.style.width = total; wa.style.height = total;
+}
+
+// ════════════════════════════════════════
+// RENDER ORBIT BUBBLES
+// ════════════════════════════════════════
+function renderOrbit() {
+  const canvas = document.getElementById('orbit-canvas');
+  const pArr   = Object.entries(participants);
+  const count  = pArr.length;
+  if (!count) { canvas.innerHTML = ''; return; }
+
+  const wheel = document.getElementById('center-wheel');
+  const wa    = document.getElementById('wheel-area');
+  const wr    = wa.getBoundingClientRect();
+  const cr    = wheel.getBoundingClientRect();
+  const cx    = cr.left - wr.left + cr.width  / 2;
+  const cy    = cr.top  - wr.top  + cr.height / 2;
+
+  // ── Mỗi vòng đúng 10 người ──
+  const PER_RING  = 10;
+  const numRings  = Math.ceil(count / PER_RING);
+
+  // Gap co dần liên tục: bắt đầu 88px, mỗi vòng thêm giảm đi
+  // Công thức: gap = max(42, 88 - (numRings-1)*8)
+  // 1 vòng=88, 2=80, 3=72, 4=64, 5=56, 6=48, 7=42
+  const baseGap = Math.max(42, 88 - (numRings - 1) * 8);
+  // Khoảng cách từ tâm đến vòng 1 cũng thu nhỏ theo
+  const baseR   = wheelSizePx / 2 + Math.max(55, baseGap * 0.85);
+
+  // Chia rings
+  const rings = [];
+  for (let ri = 0; ri < numRings; ri++) {
+    const start = ri * PER_RING;
+    const items = pArr.slice(start, start + PER_RING);
+    const r     = baseR + ri * baseGap;
+    rings.push({ items, r, ri });
+  }
+
+  // Bubble co theo số vòng
+  const bFontSize = numRings <= 1 ? '.84rem'
+                  : numRings <= 2 ? '.78rem'
+                  : numRings <= 4 ? '.70rem'
+                  : numRings <= 6 ? '.62rem' : '.56rem';
+  const bAvaSize  = numRings <= 1 ? 22
+                  : numRings <= 2 ? 20
+                  : numRings <= 4 ? 17
+                  : numRings <= 6 ? 14 : 12;
+  const bAvaFont  = numRings <= 2 ? '.62rem'
+                  : numRings <= 4 ? '.55rem' : '.48rem';
+
+  // ── Cập nhật orbit-rings (vòng xanh) ──
+  // Xóa rings cũ
+  document.querySelectorAll('.orbit-ring').forEach(e => e.remove());
+
+  rings.forEach(({ items, r }, rIdx) => {
+    const isFull = items.length >= PER_RING;
+    const ring = document.createElement('div');
+    ring.className = 'orbit-ring ring-idx-' + (rIdx % 7);
+    // Set size trước (không transition lần đầu)
+    ring.style.transition = 'none';
+    ring.style.width  = (r * 2) + 'px';
+    ring.style.height = (r * 2) + 'px';
+    document.getElementById('wheel-area').appendChild(ring);
+    // Sau 1 frame → bật transition + add class
+    requestAnimationFrame(() => {
+      ring.style.transition = '';
+      if (isFull) {
+        ring.classList.add('complete');
+        // spark chỉ nếu vừa đủ (lần đầu complete)
+        const prevCount = window._prevRingComplete || {};
+        if (!prevCount[rIdx]) {
+          ring.classList.add('spark');
+          prevCount[rIdx] = true;
+          window._prevRingComplete = prevCount;
+          setTimeout(() => ring.classList.remove('spark'), 700);
+        }
+      } else {
+        ring.style.opacity = '0.25'; // vòng chưa đủ: hiện mờ
+        ring.style.borderColor = 'rgba(0,200,248,.2)';
+      }
+    });
+  });
+
+  canvas.innerHTML = '';
+
+  rings.forEach(({ items, r, ri }) => {
+    const n   = items.length;
+    // Vòng chẵn xoay thuận, vòng lẻ xoay ngược (chậm hơn 30%)
+    const spd = ri % 2 === 0 ? 1 : -0.7;
+    // Offset góc ban đầu xen kẽ giữa các vòng để tránh thẳng hàng
+    const offsetDeg = ri * (360 / PER_RING / 2);
+
+    items.forEach(([key, p], i) => {
+      const baseAngle = (360 / n) * i + offsetDeg;
+      const angle     = ((baseAngle + orbitAngle * spd) % 360) * (Math.PI / 180);
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+
+      const c      = getColor(i + ri * 7, p.role);
+      const letter = (p.name || '?')[0].toUpperCase();
+
+      const bubble = document.createElement('div');
+      bubble.className = 'name-bubble';
+      bubble.style.cssText = `
+        left:${x}px; top:${y}px;
+        border-color:${c.border};
+        background:rgba(255,255,255,.9);
+        box-shadow:0 2px 10px ${c.border}50;
+        color:rgba(5,15,60,.92);
+        font-size:${bFontSize};
+        padding:4px ${numRings>3?'8':'10'}px 4px 4px;
+      `;
+
+      const av = document.createElement('div');
+      av.className = 'bubble-avatar';
+      av.style.cssText = `
+        background:${c.dot};
+        width:${bAvaSize}px; height:${bAvaSize}px;
+        font-size:${bAvaFont};
+        flex-shrink:0;
+      `;
+      av.textContent = letter;
+
+      const nm = document.createElement('span');
+      nm.textContent = p.name || '';
+
+      bubble.appendChild(av);
+      bubble.appendChild(nm);
+      canvas.appendChild(bubble);
+    });
+  });
+}
+
+// ════════════════════════════════════════
+// ANIMATION LOOP
+// ════════════════════════════════════════
+function startAnimation() {
+  function frame(ts) {
+    if (isRotating) {
+      if (!lastTs) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+      orbitAngle = (orbitAngle + (360 / rotateSpeed) * dt) % 360;
+    } else {
+      lastTs = null;
+    }
+    if (Object.keys(participants).length > 0) renderOrbit();
+    animId = requestAnimationFrame(frame);
+  }
+  animId = requestAnimationFrame(frame);
+}
+
+// ════════════════════════════════════════
+// PARTICIPANT LIST SIDEBAR
+// ════════════════════════════════════════
+function renderSidebar() {
+  const list  = document.getElementById('name-list-scroll');
+  const count = Object.keys(participants).length;
+  document.getElementById('list-count').textContent  = count;
+  document.getElementById('qr-count').textContent    = count + ' tham gia';
+
+  list.innerHTML = '';
+  Object.values(participants).forEach((p, i) => {
+    const c   = getColor(i, p.role);
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `
+      <div class="list-dot" style="background:${c.dot}"></div>
+      <div class="list-name">${p.name || ''}</div>
+      <div class="list-role">${p.role || ''}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════
+// JOIN TOAST
+// ════════════════════════════════════════
+let toastTimer = null;
+function showToast(name) {
+  const t = document.getElementById('join-toast');
+  document.getElementById('toast-name').textContent = name;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ════════════════════════════════════════
+// COUNTDOWN
+// ════════════════════════════════════════
+function tickCountdown() {
+  const el = document.getElementById('countdown-display');
+  if (!countdownEnd) { el.classList.remove('visible'); return; }
+  const rem = Math.max(0, countdownEnd - Date.now());
+  const m   = Math.floor(rem / 60000);
+  const s   = Math.floor((rem % 60000) / 1000);
+  el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  el.classList.add('visible');
+  if (rem <= 0) {
+    countdownEnd = null;
+    el.textContent = '00:00';
+    setTimeout(() => el.classList.remove('visible'), 3000);
+  }
+}
+
+// ════════════════════════════════════════
+// APPLY SETTINGS FROM FIREBASE
+// ════════════════════════════════════════
+function applySettings(s) {
+  if (!s) return;
+
+  // Title / subtitle
+  if (s.title    !== undefined) document.getElementById('title-main').textContent = s.title;
+  if (s.subtitle !== undefined) document.getElementById('title-sub').textContent  = s.subtitle;
+  if (s.wheelTagline !== undefined) document.getElementById('wheel-tagline').textContent = s.wheelTagline;
+  if (s.footerText !== undefined)   document.getElementById('footer').textContent = s.footerText;
+
+  // Wheel size
+  if (s.wheelSize !== undefined) setWheelSize(s.wheelSize);
+
+  // Glow
+  const gl = document.getElementById('glow-layer');
+  if (s.glowMode !== undefined) {
+    gl.className = '';
+    if (s.glowMode === 'flash')  gl.classList.add('flashing');
+    if (s.glowMode === 'solid')  gl.classList.add('solid');
+    if (s.glowMode === 'off')    gl.classList.add('off');
+  }
+  if (s.flashSpeed !== undefined) {
+    document.documentElement.style.setProperty('--flash-speed', s.flashSpeed + 's');
+  }
+
+  // Rotation
+  if (s.rotateSpeed !== undefined) rotateSpeed  = s.rotateSpeed;
+  if (s.rotating    !== undefined) {
+    isRotating = s.rotating;
+    if (isRotating) lastTs = null;
+  }
+
+  // Blackout
+  if (s.blackout !== undefined) {
+    document.getElementById('blackout').classList.toggle('on', s.blackout);
+  }
+
+  // Background
+  if (s.bgImageData !== undefined) {
+    const bgEl = document.getElementById('bg-image');
+    if (s.bgImageData) {
+      bgEl.style.backgroundImage = `url('${s.bgImageData}')`;
+      bgEl.style.opacity = s.bgOpacity !== undefined ? s.bgOpacity : '0.55';
+    } else {
+      bgEl.style.backgroundImage = 'none';
+      bgEl.style.opacity = '0';
+    }
+  }
+  if (s.bgOpacity !== undefined && document.getElementById('bg-image').style.backgroundImage !== 'none') {
+    document.getElementById('bg-image').style.opacity = s.bgOpacity;
+  }
+
+  // Countdown
+  if (s.countdown !== undefined) {
+    if (s.countdown.active && s.countdown.endTime) {
+      countdownEnd = s.countdown.endTime;
+    } else {
+      countdownEnd = null;
+    }
+  }
+
+  // Wheel logo
+  if (s.wheelLogoData !== undefined) {
+    const img = document.getElementById('wheel-logo-img');
+    if (s.wheelLogoData) {
+      img.src = s.wheelLogoData;
+      img.style.display        = 'block';
+      img.style.width          = '100%';
+      img.style.height         = '100%';
+      img.style.objectFit      = 'cover';
+      img.style.objectPosition = 'center';
+      img.style.borderRadius   = '0';
+      img.style.filter         = 'brightness(1.08) contrast(1.06) saturate(1.1)';
+      document.getElementById('wheel-tagline').style.display = 'none';
+    } else {
+      img.style.display = 'none';
+      document.getElementById('wheel-tagline').style.display = '';
+    }
+  }
+  // Wheel color
+  if (s.wheelColor !== undefined) applyWheelColor(s.wheelColor);
+
+  // Ring mode
+  if (s.ringMode !== undefined) applyRingMode(s.ringMode);
+
+  // Overlay opacity — phủ màu lên toàn vòng tròn
+  if (s.overlayOpacity !== undefined) {
+    const ov = document.getElementById('wheel-overlay');
+    if (ov) {
+      const pct = s.overlayOpacity / 100;
+      const col = currentRingColor || '150,160,180';
+      if (pct <= 0.01) {
+        ov.style.background = 'transparent';
+      } else {
+        ov.style.background = `rgba(${col},${Math.min(pct * 0.92, 0.92)})`;
+      }
+    }
+  }
+
+  // Zoom ảnh từ admin
+  if (s.wheelLogoZoom !== undefined) {
+    const img2 = document.getElementById('wheel-logo-img');
+    const z = s.wheelLogoZoom / 100;
+    img2.style.transform       = 'scale(' + z + ')';
+    img2.style.transformOrigin = 'center center';
+    if (s.wheelLogoZoom !== undefined) { /* handled */ }
+  }
+}
+
+// ════════════════════════════════════════
+// FIREBASE LISTENERS
+// ════════════════════════════════════════
+function initFirebase() {
+  // Participants
+  db.ref('participants').on('value', snap => {
+    const data = snap.val() || {};
+    // Detect new entries → toast
+    Object.keys(data).forEach(k => {
+      if (!knownKeys.has(k) && knownKeys.size > 0) {
+        showToast(data[k].name);
+        // Check xem vừa đủ bội số 10 chưa
+        const newCount = Object.keys(data).length;
+        if (newCount > 0 && newCount % 10 === 0) {
+          const ringNum = Math.ceil(newCount / 10);
+          setTimeout(() => showRingComplete(ringNum), 400);
+        }
+      }
+    });
+    // Reset ring complete cache nếu xóa người
+    const newCount = Object.keys(data).length;
+    const oldCount = Object.keys(participants).length;
+    if (newCount < oldCount) window._prevRingComplete = {};
+    knownKeys = new Set(Object.keys(data));
+    participants = data;
+    renderSidebar();
+  });
+
+  // Settings
+  db.ref('settings').on('value', snap => {
+    applySettings(snap.val());
+  });
+
+  // Clap total từ join page
+  db.ref('claps/total').on('value', snap => {
+    const total = snap.val() || 0;
+    if (total > 0) {
+      document.getElementById('clap-display').textContent = total + ' 👏';
+      document.getElementById('clap-display').style.opacity = '1';
+    }
+  });
+
+  // QR expand from admin
+  let lastQRTs = 0;
+  db.ref('settings/qrExpand').on('value', snap => {
+    const v = snap.val();
+    if (!v || v.ts === lastQRTs) return;
+    lastQRTs = v.ts;
+    const qrPanel = document.getElementById('qr-panel');
+    if (v.expand) {
+      qrPanel.classList.add('expanded');
+    } else {
+      qrPanel.classList.remove('expanded');
+    }
+  });
+}
+let lastFireTs = 0;
+db.ref('settings/firework').on('value', snap => {
+  const f = snap.val();
+  console.log('firework snap:',f);
+  if (f && f.active && f.ts !== lastFireTs) {
+    lastFireTs = f.ts;
+    launchFireworks();
+  }
+  function launchFireworks() {
+  const colors = ['#00c8f8','#ff0080','#ffd700','#00ff88','#ff6600','#cc44ff','#ffffff'];
+  for (let b = 0; b < 8; b++) {
+    setTimeout(() => {
+      const bx = 100 + Math.random() * (window.innerWidth  - 200);
+      const by = 50  + Math.random() * (window.innerHeight * 0.7);
+      for (let i = 0; i < 60; i++) {
+        const p   = document.createElement('div');
+        const ang = (i / 60) * Math.PI * 2;
+        const spd = 60 + Math.random() * 160;
+        const sz  = 4 + Math.random() * 6;
+        const col = colors[Math.floor(Math.random() * colors.length)];
+        const tx  = Math.cos(ang) * spd;
+        const ty  = Math.sin(ang) * spd;
+        p.style.cssText = `
+          position:fixed;
+          left:${bx}px;top:${by}px;
+          width:${sz}px;height:${sz}px;
+          border-radius:50%;
+          background:${col};
+          box-shadow:0 0 ${sz*2}px ${col};
+          z-index:9999;
+          pointer-events:none;
+          transition:transform ${0.8+Math.random()*0.6}s ease-out,opacity ${0.8+Math.random()*0.6}s ease-out;
+          opacity:1;
+        `;
+        document.body.appendChild(p);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          p.style.transform = `translate(${tx}px,${ty}px)`;
+          p.style.opacity = '0';
+        }));
+        setTimeout(() => p.remove(), 1600);
+      }
+    }, b * 200);
+  }
+}
+  });
+
+// ════════════════════════════════════════
+// HOTKEYS
+// ════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  // Ctrl+Shift+B = toggle blackout
+  if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+    e.preventDefault();
+    const bo    = document.getElementById('blackout');
+    const isOn  = bo.classList.contains('on');
+    bo.classList.toggle('on', !isOn);
+    // sync to firebase
+    db.ref('settings/blackout').set(!isOn);
+  }
+  // Ctrl+Shift+F = toggle fullscreen
+  if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+    e.preventDefault();
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+});
+
+// ════════════════════════════════════════
+// COUNTDOWN TICK
+// ════════════════════════════════════════
+function launchFireworks() {
+  const wheel = document.getElementById('center-wheel');
+  const rect  = wheel.getBoundingClientRect();
+  const cx    = rect.left + rect.width  / 2;
+  const cy    = rect.top  + rect.height / 2;
+  const PALS  = [
+    ['#00c8f8','#00f0ff','#80ffff'],
+    ['#e0007f','#ff4db8','#ffaadd'],
+    ['#ffd700','#ffee55','#fffaaa'],
+    ['#00ff88','#55ffaa','#aaffdd'],
+    ['#ff6600','#ffaa44','#ffddaa'],
+    ['#ffffff','#ddeeff','#aaccff'],
+  ];
+  for (let b = 0; b < 7; b++) {
+    setTimeout(() => {
+      const pal  = PALS[Math.floor(Math.random() * PALS.length)];
+      const a    = Math.random() * Math.PI * 2;
+      const d    = rect.width * (0.3 + Math.random() * 0.5);
+      const bx   = cx + Math.cos(a) * d;
+      const by   = cy + Math.sin(a) * d;
+      const wrap = document.createElement('div');
+      wrap.className = 'fw-wrap';
+      document.body.appendChild(wrap);
+
+      // Vòng tròn hạt chính – 48 hạt
+      for (let i = 0; i < 48; i++) {
+        const p    = document.createElement('div');
+        p.className = 'fw-particle';
+        const ang  = (i / 48) * Math.PI * 2;
+        const spd  = 60 + Math.random() * 140;
+        const sz   = 3 + Math.random() * 5;
+        p.style.cssText = `
+          left:${bx}px; top:${by}px;
+          width:${sz}px; height:${sz}px;
+          background:${pal[i%3]};
+          box-shadow:0 0 ${sz*3}px ${pal[0]}, 0 0 ${sz*6}px ${pal[1]};
+          --fx:${Math.cos(ang)*spd}px;
+          --fy:${Math.sin(ang)*spd}px;
+          animation-duration:${0.9+Math.random()*0.7}s;
+          animation-delay:${Math.random()*0.08}s;
+        `;
+        wrap.appendChild(p);
+      }
+
+      // Tia sáng dài – 16 streak
+      for (let i = 0; i < 16; i++) {
+        const s    = document.createElement('div');
+        s.className = 'fw-streak';
+        const ang  = (i / 16) * Math.PI * 2;
+        const spd  = 80 + Math.random() * 100;
+        s.style.cssText = `
+          left:${bx}px; top:${by}px;
+          width:${10+Math.random()*14}px; height:2px;
+          background:linear-gradient(90deg, ${pal[0]}, transparent);
+          box-shadow:0 0 8px ${pal[0]};
+          --fx:${Math.cos(ang)*spd}px;
+          --fy:${Math.sin(ang)*spd}px;
+          animation-duration:${0.7+Math.random()*0.5}s;
+          transform:rotate(${ang}rad);
+          transform-origin:left center;
+        `;
+        wrap.appendChild(s);
+      }
+
+      // Hạt lấp lánh nhỏ – 24 hạt rơi xuống
+      for (let i = 0; i < 24; i++) {
+        const g    = document.createElement('div');
+        g.className = 'fw-particle';
+        const ang  = Math.random() * Math.PI * 2;
+        const spd  = 30 + Math.random() * 60;
+        g.style.cssText = `
+          left:${bx}px; top:${by}px;
+          width:2px; height:2px;
+          background:#fff;
+          box-shadow:0 0 4px #fff, 0 0 8px ${pal[0]};
+          --fx:${Math.cos(ang)*spd}px;
+          --fy:${Math.sin(ang)*spd + 40}px;
+          animation-duration:${1.2+Math.random()*0.8}s;
+animation-delay:${0.1+Math.random()*0.2}s;
+        `;
+        wrap.appendChild(g);
+      }
+
+      setTimeout(() => wrap.remove(), 2200);
+    }, b * 200);
+  }
+}
+setInterval(tickCountdown, 1000);
+
+// ════════════════════════════════════════
+// RING COMPLETE CELEBRATION
+// ════════════════════════════════════════
+function showRingComplete(ringNum) {
+  // Toast đặc biệt
+  const t = document.getElementById('join-toast');
+  t.innerHTML = `🎉 Vòng <strong style="color:var(--cyan)">#${ringNum}</strong> đã đủ 10 người!`;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+    t.innerHTML = '🌟 <span id="toast-name">Người mới</span> đã tham gia!';
+  }, 3000);
+  // Firework nhỏ quanh vòng vừa đủ
+  const wheel = document.getElementById('center-wheel');
+  const rect  = wheel.getBoundingClientRect();
+  const cx    = rect.left + rect.width  / 2;
+  const cy    = rect.top  + rect.height / 2;
+  const PER_RING = 10;
+  const numRings = Math.ceil(Object.keys(participants).length / PER_RING);
+  const baseGap  = numRings <= 2 ? 90 : numRings <= 4 ? 72 : numRings <= 6 ? 58 : 48;
+  const r        = (wheelSizePx / 2 + baseGap) + (ringNum - 1) * baseGap;
+  const colors   = ['#00c8f8','#00f0ff','#38bdf8','#67e8f9','#ffffff'];
+  for (let i = 0; i < 20; i++) {
+    setTimeout(() => {
+      const ang = (i / 20) * Math.PI * 2;
+      const bx  = cx + r * Math.cos(ang);
+      const by  = cy + r * Math.sin(ang);
+      for (let j = 0; j < 10; j++) {
+        const p   = document.createElement('div');
+        const col = colors[j % colors.length];
+        const spd = 30 + Math.random() * 50;
+        const a2  = Math.random() * Math.PI * 2;
+        const sz  = 3 + Math.random() * 4;
+        p.style.cssText = `
+          position:fixed;left:${bx}px;top:${by}px;
+          width:${sz}px;height:${sz}px;border-radius:50%;
+          background:${col};box-shadow:0 0 ${sz*2}px ${col};
+          z-index:9999;pointer-events:none;opacity:1;
+          transition:transform .7s ease-out,opacity .7s ease-out;
+        `;
+        document.body.appendChild(p);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          p.style.transform = `translate(${Math.cos(a2)*spd}px,${Math.sin(a2)*spd}px)`;
+          p.style.opacity = '0';
+        }));
+        setTimeout(() => p.remove(), 900);
+      }
+    }, i * 30);
+  }
+}
+
+// ════════════════════════════════════════
+// WHEEL COLOR & RING MODE
+// ════════════════════════════════════════
+const RING_COLORS = {
+  grey:  '150,160,180',
+  cyan:  '0,200,248',
+  red:   '239,68,68',
+  green: '34,197,94',
+  gold:  '255,215,0',
+  pink:  '224,0,127',
+};
+let currentRingColor = '0,200,248';
+let currentRingMode  = 'pulse';
+
+function applyWheelColor(key) {
+  const r = RING_COLORS[key] || RING_COLORS.cyan;
+  currentRingColor = r;
+  const root = document.documentElement;
+  root.style.setProperty('--ring-r', r);
+  root.style.setProperty('--ring-shadow-lo',
+    `0 0 0 3px rgba(${r},.6), 0 0 45px 15px rgba(${r},.6), 0 0 110px 45px rgba(${r},.28)`);
+  root.style.setProperty('--ring-shadow-hi',
+    `0 0 0 6px rgba(${r},1), 0 0 75px 25px rgba(${r},.95), 0 0 150px 60px rgba(${r},.5)`);
+  root.style.setProperty('--ring-shadow-solid',
+    `0 0 0 4px rgba(${r},.8), 0 0 55px 18px rgba(${r},.75), 0 0 120px 50px rgba(${r},.4)`);
+  applyRingMode(currentRingMode);
+  // Update overlay color nếu đang bật
+  const ov = document.getElementById('wheel-overlay');
+  if (ov && ov.style.background && ov.style.background !== 'transparent') {
+    const match = ov.style.background.match(/,([\d.]+)\)$/);
+    const curPct = match ? parseFloat(match[1]) : 0;
+    if (curPct > 0.01) {
+      ov.style.background = `rgba(${r},${curPct})`;
+    }
+  }
+}
+
+function applyRingMode(mode) {
+  currentRingMode = mode;
+  const cw = document.getElementById('center-wheel');
+  if (!cw) return;
+  if (mode === 'pulse') {
+    cw.style.animation = 'ringPulse 2s ease-in-out infinite';
+    cw.style.boxShadow = '';
+  } else if (mode === 'solid') {
+    cw.style.animation = 'none';
+    cw.style.boxShadow = `var(--ring-shadow-solid)`;
+  } else if (mode === 'off') {
+    cw.style.animation = 'none';
+    cw.style.boxShadow = 'none';
+  }
+}
+
+// ════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════
+function makeDraggable(el) {
+  let dragging = false, startX, startY, origLeft, origTop;
+  el.addEventListener('mousedown', e => {
+    const rect = el.getBoundingClientRect();
+    origLeft = rect.left; origTop = rect.top;
+    startX = e.clientX; startY = e.clientY;
+    dragging = true;
+    el.style.transition = 'none';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    el.style.left      = (origLeft + e.clientX - startX) + 'px';
+    el.style.top       = (origTop  + e.clientY - startY) + 'px';
+    el.style.transform = 'none';
+    el.style.right     = 'auto';
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    document.body.style.userSelect = '';
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  buildQR();
+  spawnStars();
+  initFirebase();
+  startAnimation();
+  makeDraggable(document.getElementById('wheel-area'));
+  // QR draggable + expand
+  const qrPanel = document.getElementById('qr-panel');
+  let qrDragging = false, qrStartX, qrStartY, qrOrigL, qrOrigT, qrMoved = false;
+
+  qrPanel.addEventListener('mousedown', e => {
+    if (e.target.id === 'qr-close-btn') return;
+    qrOrigL  = qrPanel.getBoundingClientRect().left;
+    qrOrigT  = qrPanel.getBoundingClientRect().top;
+    qrStartX = e.clientX; qrStartY = e.clientY;
+    qrDragging = true; qrMoved = false;
+    qrPanel.style.transition = 'box-shadow .2s, width .3s';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!qrDragging) return;
+    const dx = e.clientX - qrStartX, dy = e.clientY - qrStartY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) qrMoved = true;
+    qrPanel.style.left      = (qrOrigL + dx) + 'px';
+    qrPanel.style.top       = (qrOrigT + dy) + 'px';
+    qrPanel.style.right     = 'auto';
+    qrPanel.style.transform = 'none';
+  });
+  window.addEventListener('mouseup', () => {
+    if (!qrDragging) return;
+    qrDragging = false;
+    document.body.style.userSelect = '';
+    qrPanel.style.transition = 'box-shadow .2s, width .3s, padding .3s';
+  });
+
+  qrPanel.addEventListener('click', function(e) {
+    if (qrMoved) return; // đã kéo, không expand
+    if (e.target.id === 'qr-close-btn') return;
+    if (!qrPanel.classList.contains('expanded')) {
+      qrPanel.classList.add('expanded');
+    }
+  });
+  window.collapseQR = function(e) {
+    e.stopPropagation();
+    qrPanel.classList.remove('expanded');
+  };
+});
+</script>
+
+</body>
+</html>

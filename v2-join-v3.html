@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#030b1f"/>
+<title>Tham Gia – Together, We Win!</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{--navy:#030b1f;--cyan:#00c8f8;--cyan2:#00f0ff;--pink:#e0007f;--blue:#0a2060;}
+html,body{width:100%;min-height:100%;font-family:"Barlow",sans-serif;background:var(--navy);color:#fff;overflow-x:hidden;}
+
+/* BG */
+.bg{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 20%,rgba(0,60,200,.22) 0%,transparent 65%),
+             radial-gradient(ellipse 60% 60% at 80% 80%,rgba(0,180,255,.1) 0%,transparent 60%),
+             linear-gradient(180deg,#030b1f 0%,#050f2e 100%);}
+.grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,200,248,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,200,248,.04) 1px,transparent 1px);
+  background-size:36px 36px;animation:gridScroll 10s linear infinite;}
+@keyframes gridScroll{from{background-position:0 0;}to{background-position:36px 36px;}}
+.glow-line{position:fixed;bottom:0;left:0;right:0;height:2px;z-index:20;
+  background:linear-gradient(90deg,transparent,var(--cyan) 30%,var(--pink) 70%,transparent);opacity:.5;}
+
+/* WRAPPER */
+.wrapper{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:28px 20px 48px;}
+
+/* BRAND */
+.brand{text-align:center;margin-bottom:24px;}
+.brand-badge{display:inline-block;background:rgba(0,200,248,.1);border:1px solid rgba(0,200,248,.25);
+  border-radius:100px;padding:4px 16px;font-family:"Rajdhani",sans-serif;font-size:.72rem;font-weight:700;
+  letter-spacing:.18em;color:var(--cyan);text-transform:uppercase;margin-bottom:10px;}
+.brand-title{font-family:"Barlow Condensed",sans-serif;font-size:clamp(1.8rem,7vw,2.6rem);font-weight:900;
+  letter-spacing:.06em;color:#fff;line-height:1.05;text-shadow:0 0 30px rgba(0,200,248,.4);}
+.brand-sub{font-family:"Barlow Condensed",sans-serif;font-size:clamp(.65rem,2.5vw,.85rem);font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:5px;}
+
+/* CARD */
+.card{width:100%;max-width:400px;background:rgba(5,15,50,.75);backdrop-filter:blur(20px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px 24px;text-align:center;
+  box-shadow:0 0 0 1px rgba(0,200,248,.06),0 30px 80px rgba(0,0,0,.5);
+  animation:cardIn .5s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes cardIn{from{opacity:0;transform:translateY(28px) scale(.97);}to{opacity:1;transform:none;}}
+
+/* FORM */
+.card-icon{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin:0 auto 14px;
+  box-shadow:0 0 24px rgba(0,200,248,.3);}
+.card-title{font-family:"Rajdhani",sans-serif;font-size:clamp(1.3rem,5vw,1.8rem);font-weight:700;
+  letter-spacing:.08em;color:#fff;margin-bottom:6px;}
+.card-desc{font-size:clamp(.75rem,3vw,.86rem);color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px;}
+.input-group{position:relative;margin-bottom:14px;}
+.input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:.95rem;pointer-events:none;}
+.name-input{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(0,200,248,.2);
+  border-radius:12px;padding:13px 14px 13px 42px;color:#fff;font-family:"Barlow",sans-serif;
+  font-size:clamp(.95rem,3.5vw,1.05rem);font-weight:500;outline:none;
+  transition:border-color .2s,background .2s;-webkit-appearance:none;}
+.name-input:focus{border-color:var(--cyan);background:rgba(0,200,248,.05);}
+.name-input::placeholder{color:rgba(255,255,255,.25);}
+.name-input.error{border-color:var(--pink);animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%,75%{transform:translateX(-5px);}50%{transform:translateX(5px);}}
+.error-msg{font-size:.74rem;color:var(--pink);text-align:left;padding:2px;min-height:18px;margin-bottom:6px;}
+.submit-btn{width:100%;padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#0a2060 0%,var(--cyan) 100%);color:#fff;
+  font-family:"Rajdhani",sans-serif;font-size:clamp(1rem,4vw,1.2rem);font-weight:700;
+  letter-spacing:.1em;cursor:pointer;transition:all .2s;
+  box-shadow:0 4px 20px rgba(0,200,248,.2);-webkit-tap-highlight-color:transparent;}
+.submit-btn:active{transform:scale(.97);}
+.submit-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* SUCCESS */
+.success-wrap{display:none;text-align:center;}
+.success-icon{font-size:3rem;margin-bottom:12px;animation:bounceIn .6s cubic-bezier(.34,1.56,.64,1);}
+@keyframes bounceIn{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:scale(1);}}
+.success-title{font-family:"Rajdhani",sans-serif;font-size:clamp(1.25rem,5vw,1.65rem);
+  font-weight:700;color:var(--cyan);margin-bottom:6px;}
+.success-name-display{font-family:"Barlow Condensed",sans-serif;font-size:clamp(1.4rem,6vw,2rem);
+  font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.success-msg{font-size:clamp(.75rem,3vw,.88rem);color:rgba(255,255,255,.5);line-height:1.6;
+  max-width:280px;margin:0 auto 18px;}
+
+/* CLAP */
+.clap-area{margin-top:8px;text-align:center;}
+.clap-btn{
+  font-size:4.2rem;cursor:pointer;display:inline-block;
+  filter:drop-shadow(0 0 14px rgba(255,200,0,.7));
+  -webkit-tap-highlight-color:transparent;user-select:none;
+  transition:transform .15s;
+  animation:clapFloat 2s ease-in-out infinite;
+}
+@keyframes clapFloat{0%,100%{transform:scale(1) rotate(-4deg);}50%{transform:scale(1.1) rotate(4deg);}}
+.clap-btn:active{transform:scale(1.5) rotate(15deg) !important;}
+.clap-hint{font-size:.78rem;color:rgba(255,255,255,.4);margin-top:6px;letter-spacing:.05em;}
+.clap-count-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;}
+.clap-my{font-family:"Rajdhani",sans-serif;font-size:1.05rem;font-weight:700;color:var(--cyan);}
+.clap-total{font-family:"Rajdhani",sans-serif;font-size:.82rem;font-weight:600;
+  color:rgba(255,255,255,.35);border-left:1px solid rgba(255,255,255,.12);padding-left:10px;}
+
+/* LIVE COUNTER */
+#live-counter{margin-top:18px;text-align:center;font-family:"Rajdhani",sans-serif;
+  font-size:.76rem;font-weight:600;letter-spacing:.1em;color:rgba(255,255,255,.28);}
+#live-count-num{color:var(--cyan);font-size:.9rem;}
+
+.footer{margin-top:24px;font-family:"Rajdhani",sans-serif;font-size:.62rem;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.15);text-align:center;}
+
+/* CLAP FLOAT PARTICLE */
+.clap-particle{
+  position:fixed;pointer-events:none;z-index:9999;
+  font-size:1.4rem;animation:floatUp .9s ease-out forwards;
+}
+@keyframes floatUp{
+  0%  {opacity:1;transform:translateY(0) scale(1);}
+  100%{opacity:0;transform:translateY(-80px) scale(.5);}
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="grid"></div>
+
+<div class="wrapper">
+  <div class="brand">
+    <div class="brand-badge">🏭 Nestlé Vietnam</div>
+    <div class="brand-title">TOGETHER,<br/>WE WIN!</div>
+    <div class="brand-sub">One Team – One Nestlé</div>
+  </div>
+
+  <div class="card">
+    <!-- FORM -->
+    <div id="form-view">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">THAM GIA NGAY</div>
+      <div class="card-desc">Nhập tên của bạn để xuất hiện trên màn hình chính cùng mọi người!</div>
+      <div class="input-group">
+        <span class="input-icon">👤</span>
+        <input class="name-input" id="name-input" type="text"
+          placeholder="Nhập tên tại đây..."
+          maxlength="30" autocomplete="off" autocorrect="off"
+          autocapitalize="words" spellcheck="false"/>
+      </div>
+      <div class="error-msg" id="error-msg"></div>
+      <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">THAM GIA 🚀</button>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-wrap" id="success-view">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Cảm ơn bạn!</div>
+      <div class="success-name-display" id="success-name"></div>
+      <div class="success-msg">Tên bạn đã xuất hiện trên màn hình chính và đang xoay cùng mọi người!</div>
+      <div class="clap-area">
+        <div class="clap-btn" id="clap-btn" onclick="sendClap()">👏</div>
+        <div class="clap-hint">Tap để vỗ tay cho cả nhóm!</div>
+        <div class="clap-count-row">
+          <span class="clap-my" id="clap-my">0 👏 của bạn</span>
+          <span class="clap-total" id="clap-total">Tổng: 0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="live-counter">Hiện có <span id="live-count-num">0</span> người tham gia</div>
+  </div>
+
+  <div class="footer">Focus · Speed · Impact</div>
+</div>
+<div class="glow-line"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDnh9ifqf83aiK3YqTAPU4lnWbEiwSHbCU",
+  authDomain: "nestle-lucky-wheel.firebaseapp.com",
+  databaseURL: "https://nestle-lucky-wheel-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "nestle-lucky-wheel",
+  storageBucket: "nestle-lucky-wheel.firebasestorage.app",
+  messagingSenderId: "353575911155",
+  appId: "1:353575911155:web:604bf934f15f32313a8186"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Live counter
+db.ref('participants').on('value', snap => {
+  document.getElementById('live-count-num').textContent =
+    snap.val() ? Object.keys(snap.val()).length : 0;
+});
+
+// Clap total từ Firebase
+db.ref('claps/total').on('value', snap => {
+  document.getElementById('clap-total').textContent = 'Tổng: ' + (snap.val() || 0) + ' 👏';
+});
+
+// ── SUBMIT ──
+async function handleSubmit() {
+  const nameEl = document.getElementById('name-input');
+  const errEl  = document.getElementById('error-msg');
+  const btn    = document.getElementById('submit-btn');
+  const name   = nameEl.value.trim();
+  errEl.textContent = '';
+  nameEl.classList.remove('error');
+  if (!name) {
+    errEl.textContent = '⚠️ Vui lòng nhập tên của bạn.';
+    nameEl.classList.add('error'); nameEl.focus(); return;
+  }
+  if (name.length < 2) {
+    errEl.textContent = '⚠️ Tên phải có ít nhất 2 ký tự.';
+    nameEl.classList.add('error'); return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Đang gửi...';
+  try {
+    await db.ref('participants').push({ name, role:'Member', joinedAt: Date.now() });
+    document.getElementById('form-view').style.display   = 'none';
+    document.getElementById('success-view').style.display = 'block';
+    document.getElementById('success-name').textContent  = name;
+    // Firework nhỏ khi submit thành công
+    spawnFirework();
+  } catch(err) {
+    errEl.textContent = '❌ Lỗi kết nối. Vui lòng thử lại.';
+    btn.disabled = false;
+    btn.innerHTML = 'THAM GIA 🚀';
+  }
+}
+
+// ── CLAP ──
+let clapMy = 0;
+function sendClap() {
+  clapMy++;
+  document.getElementById('clap-my').textContent = clapMy + ' 👏 của bạn';
+  // Tăng total trên Firebase
+  db.ref('claps/total').transaction(v => (v || 0) + 1);
+  // Float emoji
+  const btn = document.getElementById('clap-btn');
+  const rect = btn.getBoundingClientRect();
+  const p = document.createElement('div');
+  p.className = 'clap-particle';
+  p.textContent = ['👏','🎉','✨','💫','🌟'][Math.floor(Math.random()*5)];
+  p.style.left = (rect.left + rect.width/2 - 14) + 'px';
+  p.style.top  = (rect.top - 10) + 'px';
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 950);
+  // Mini firework
+  spawnFirework(rect.left + rect.width/2, rect.top + rect.height/2, 12);
+}
+
+function spawnFirework(cx, cy, count) {
+  const colors = ['#00c8f8','#ff0080','#ffd700','#00ff88','#ff6600','#cc44ff','#fff'];
+  cx = cx || window.innerWidth/2;
+  cy = cy || window.innerHeight * .4;
+  count = count || 28;
+  for (let b = 0; b < 3; b++) {
+    setTimeout(() => {
+      const bx = cx + (Math.random()-.5)*120;
+      const by = cy + (Math.random()-.5)*80;
+      for (let i = 0; i < count; i++) {
+        const p   = document.createElement('div');
+        const ang = (i/count)*Math.PI*2;
+        const spd = 40 + Math.random()*80;
+        const sz  = 3 + Math.random()*4;
+        const col = colors[Math.floor(Math.random()*colors.length)];
+        p.style.cssText = `position:fixed;left:${bx}px;top:${by}px;
+          width:${sz}px;height:${sz}px;border-radius:50%;
+          background:${col};box-shadow:0 0 ${sz*2}px ${col};
+          z-index:9999;pointer-events:none;opacity:1;
+          transition:transform .75s ease-out,opacity .75s ease-out;`;
+        document.body.appendChild(p);
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          p.style.transform=`translate(${Math.cos(ang)*spd}px,${Math.sin(ang)*spd}px)`;
+          p.style.opacity='0';
+        }));
+        setTimeout(()=>p.remove(),1000);
+      }
+    }, b*120);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('name-input').addEventListener('keydown', e => {
+    if (e.key==='Enter'){e.preventDefault();handleSubmit();}
+  });
+  document.getElementById('name-input').addEventListener('input', () => {
+    document.getElementById('name-input').classList.remove('error');
+    document.getElementById('error-msg').textContent = '';
+  });
+});
+</script>
+</body>
+</html>
