@@ -549,9 +549,9 @@ input[type=range].pink::-webkit-slider-thumb{background:var(--pink);box-shadow:0
           <div class="slider-row" style="margin-bottom:0">
             <div class="slider-label">
               <span>0% — 100%</span>
-              <span class="slider-val" id="bg-opacity-val">55%</span>
+              <span class="slider-val" id="bg-opacity-val">100%</span>
             </div>
-            <input type="range" class="pink" id="bg-opacity" min="0" max="100" value="55"
+            <input type="range" class="pink" id="bg-opacity" min="0" max="100" value="100"
               oninput="onBgOpacity(this.value)"/>
           </div>
         </div>
@@ -697,6 +697,13 @@ input[type=range].pink::-webkit-slider-thumb{background:var(--pink);box-shadow:0
         <button class="glow-btn" style="width:100%;margin-bottom:8px" onclick="autoFitLogo()">
           ✂️ Tự khít viền trắng
         </button>
+        <div class="slider-row" style="margin-bottom:6px;align-items:center">
+          <div class="slider-label" style="flex:1">Màu nền vòng tròn</div>
+          <input type="color" id="wheel-bg-color" value="#ffffff"
+            style="width:40px;height:28px;border:none;border-radius:6px;cursor:pointer;background:none;padding:2px"
+            oninput="onWheelBgColor(this.value)"/>
+          <button class="glow-btn" style="padding:4px 10px;font-size:.7rem;margin-left:6px" onclick="onWheelBgColor('transparent')">Trong suốt</button>
+        </div>
 
         <div class="input-label">Background màn chính</div>
         <div class="upload-zone" id="bg-upload-zone">
@@ -872,6 +879,11 @@ function initAdmin() {
       document.getElementById('logo-zoom').value = s.wheelLogoZoom;
       document.getElementById('logo-zoom-val').textContent = s.wheelLogoZoom + '%';
     }
+    if (s.wheelBgColor !== undefined) {
+      window._wheelBgColor = s.wheelBgColor;
+      const cp = document.getElementById('wheel-bg-color');
+      if(cp && s.wheelBgColor !== 'transparent') cp.value = s.wheelBgColor;
+    }
     if (s.wheelSize !== undefined) {
       document.getElementById('wheel-size').value = s.wheelSize;
       document.getElementById('wheel-size-val').textContent = s.wheelSize + 'px';
@@ -966,7 +978,7 @@ function onFlashSpeed(v) {
 function resetDefaults() {
   db.ref('settings').update({
     glowMode:'solid', flashSpeed:1, rotateSpeed:20, rotating:true,
-    blackout:false, bgOpacity:0.55
+    blackout:false, bgOpacity:1.0
   });
 }
 
@@ -1051,13 +1063,61 @@ function resizeAndEncode(file, maxW, maxH, cb) {
 
 function handleLogoUpload(e) {
   const f = e.target.files[0]; if(!f) return;
-  resizeAndEncode(f, 800, 800, data => {
-    document.getElementById('logo-preview-img').src = data;
-    document.getElementById('logo-preview-wrap').style.display = 'block';
-    document.getElementById('logo-upload-zone').style.display  = 'none';
-    db.ref('settings/wheelLogoData').set(data);
-    showToast('✅ Logo đã cập nhật!');
-  });
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const W = img.width, H = img.height;
+      // ── Bước 1: tìm bounding-box pixel không trong suốt ──
+      const tmp = document.createElement('canvas');
+      tmp.width = W; tmp.height = H;
+      const tctx = tmp.getContext('2d');
+      tctx.drawImage(img, 0, 0);
+      const px = tctx.getImageData(0,0,W,H).data;
+      let x0=W,y0=H,x1=0,y1=0;
+      for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+        if(px[(y*W+x)*4+3]>10){
+          if(x<x0)x0=x; if(x>x1)x1=x;
+          if(y<y0)y0=y; if(y>y1)y1=y;
+        }
+      }
+      if(x1<=x0||y1<=y0){x0=0;y0=0;x1=W-1;y1=H-1;}
+      // ── Bước 2: lấy vùng vuông bao quanh nội dung (cạnh dài) ──
+      const cx = (x0+x1)/2, cy = (y0+y1)/2;
+      const half = Math.max(x1-x0, y1-y0) / 2;
+      const sx = Math.max(0, Math.round(cx-half));
+      const sy = Math.max(0, Math.round(cy-half));
+      const sd = Math.min(Math.round(half*2), W-sx, H-sy);
+      // ── Bước 3: vẽ ra canvas 800×800, clip tròn ──
+      const SIZE = 800;
+      const out = document.createElement('canvas');
+      out.width = SIZE; out.height = SIZE;
+      const octx = out.getContext('2d');
+      // nền = màu vòng tròn hiện tại (lấy từ Firebase nếu có, fallback trắng)
+      const bg = window._wheelBgColor || '#ffffff';
+      octx.fillStyle = bg;
+      octx.fillRect(0,0,SIZE,SIZE);
+      octx.save();
+      octx.beginPath();
+      octx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI*2);
+      octx.clip();
+      octx.drawImage(img, sx, sy, sd, sd, 0, 0, SIZE, SIZE);
+      octx.restore();
+      const data = out.toDataURL('image/png');
+      document.getElementById('logo-preview-img').src = data;
+      document.getElementById('logo-preview-wrap').style.display = 'block';
+      document.getElementById('logo-upload-zone').style.display  = 'none';
+      const zEl = document.getElementById('logo-zoom');
+      if(zEl){ zEl.value=100; document.getElementById('logo-zoom-val').textContent='100%'; }
+      db.ref('settings/wheelLogoData').set(data);
+      db.ref('settings/wheelLogoZoom').set(100);
+      db.ref('settings/wheelLogoOffsetX').set(50);
+      db.ref('settings/wheelLogoOffsetY').set(50);
+      showToast('✅ Ảnh đã khít tròn!');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
 }
 function clearLogo() {
   document.getElementById('logo-preview-wrap').style.display = 'none';
@@ -1249,6 +1309,11 @@ function onLogoZoom(v) {
   document.getElementById('logo-zoom-val').textContent = v + '%';
   db.ref('settings/wheelLogoZoom').set(parseInt(v));
 }
+function onWheelBgColor(v) {
+  window._wheelBgColor = v;
+  db.ref('settings/wheelBgColor').set(v);
+  showToast('🎨 Màu nền vòng tròn: ' + v);
+}
 
 function autoFitLogo() {
   const img = document.getElementById('logo-preview-img');
@@ -1274,10 +1339,17 @@ function autoFitLogo() {
     }
     if (maxX<=minX||maxY<=minY) { showToast('Không tìm thấy viền!'); return; }
     const z = Math.min(Math.round(Math.min(W/(maxX-minX), H/(maxY-minY))*100), 160);
+    // Tính offset tâm của nội dung thực để căn giữa đúng
+    const cx = Math.round(((minX + maxX) / 2) / W * 100);
+    const cy = Math.round(((minY + maxY) / 2) / H * 100);
     document.getElementById('logo-zoom').value = z;
     document.getElementById('logo-zoom-val').textContent = z + '%';
     db.ref('settings/wheelLogoZoom').set(z);
-    showToast('✅ Đã khít viền trắng! Zoom: ' + z + '%');
+    db.ref('settings/wheelLogoOffsetX').set(cx);
+    db.ref('settings/wheelLogoOffsetY').set(cy);
+    // Cập nhật ngay object-position preview
+    document.getElementById('logo-preview-img').style.objectPosition = cx + '% ' + cy + '%';
+    showToast('✅ Đã khít & căn tâm! Zoom: ' + z + '% | Center: ' + cx + '%,' + cy + '%');
   };
   tmpImg.src = img.src;
 }

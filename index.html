@@ -258,7 +258,7 @@ html,body{
   width:var(--wheel-size);
   height:var(--wheel-size);
   border-radius:50%;
-  background:#050f2e;
+  background:#ffffff;
   border:none;
   overflow:hidden;
   box-shadow:
@@ -287,7 +287,7 @@ html,body{
 #wheel-logo-img{
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit:contain;
   object-position:center;
   position:absolute;
   inset:0;
@@ -332,40 +332,41 @@ html,body{
   opacity:0;
 }
 .orbit-ring.complete{
-  border-color:rgba(0,200,248,.75);
+  border-color:rgba(var(--ring-r),.75);
   box-shadow:
-    0 0 0 1px rgba(0,200,248,.15),
-    0 0 18px 4px rgba(0,200,248,.55),
-    0 0 40px 10px rgba(0,200,248,.25),
-    inset 0 0 20px rgba(0,200,248,.08);
+    0 0 0 1px rgba(var(--ring-r),.15),
+    0 0 18px 4px rgba(var(--ring-r),.55),
+    0 0 40px 10px rgba(var(--ring-r),.25),
+    inset 0 0 20px rgba(var(--ring-r),.08);
   opacity:1;
   animation:orbitRingPulse 2.5s ease-in-out infinite;
 }
-.orbit-ring.complete.ring-idx-1{ border-color:rgba(0,240,255,.7); animation-delay:.4s; }
-.orbit-ring.complete.ring-idx-2{ border-color:rgba(56,189,248,.7); animation-delay:.8s; }
-.orbit-ring.complete.ring-idx-3{ border-color:rgba(103,232,249,.7); animation-delay:1.2s; }
-.orbit-ring.complete.ring-idx-4{ border-color:rgba(34,211,238,.7); animation-delay:1.6s; }
-.orbit-ring.complete.ring-idx-5{ border-color:rgba(6,182,212,.7);  animation-delay:2.0s; }
-.orbit-ring.complete.ring-idx-6{ border-color:rgba(14,165,233,.7); animation-delay:2.4s; }
+.orbit-ring.complete.ring-idx-1{ animation-delay:.4s; }
+.orbit-ring.complete.ring-idx-2{ animation-delay:.8s; }
+.orbit-ring.complete.ring-idx-3{ animation-delay:1.2s; }
+.orbit-ring.complete.ring-idx-4{ animation-delay:1.6s; }
+.orbit-ring.complete.ring-idx-5{ animation-delay:2.0s; }
+.orbit-ring.complete.ring-idx-6{ animation-delay:2.4s; }
 
 @keyframes orbitRingPulse{
   0%,100%{ box-shadow:
-    0 0 0 1px rgba(0,200,248,.12),
-    0 0 16px 4px rgba(0,200,248,.45),
-    0 0 36px 8px rgba(0,200,248,.2),
-    inset 0 0 16px rgba(0,200,248,.06);
+    0 0 0 1px rgba(var(--ring-r),.12),
+    0 0 16px 4px rgba(var(--ring-r),.45),
+    0 0 36px 8px rgba(var(--ring-r),.2),
+    inset 0 0 16px rgba(var(--ring-r),.06);
   }
   50%{ box-shadow:
-    0 0 0 2px rgba(0,200,248,.25),
-    0 0 28px 8px rgba(0,200,248,.75),
-    0 0 60px 18px rgba(0,200,248,.35),
-    inset 0 0 30px rgba(0,200,248,.14);
+    0 0 0 2px rgba(var(--ring-r),.25),
+    0 0 28px 8px rgba(var(--ring-r),.75),
+    0 0 60px 18px rgba(var(--ring-r),.35),
+    inset 0 0 30px rgba(var(--ring-r),.14);
   }
 }
 
 /* Spark burst khi vừa đủ 10 */
 @keyframes sparkIn{
-  0%  { opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(.6); }
+  0%  { opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(.6);
+        box-shadow:0 0 0 2px rgba(var(--ring-r),.9),0 0 40px 15px rgba(var(--ring-r),.8); }
   60% { opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(1.06); }
   100%{ opacity:1; transform:translate(calc(-50% + 120px),-50%) scale(1); }
 }
@@ -562,7 +563,7 @@ const firebaseConfig = {
 // ╔═══════════════════════════════════════════╗
 // ║  JOIN PAGE URL – change after deploying   ║
 // ╚═══════════════════════════════════════════╝
-const JOIN_URL = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'join.html';
+const JOIN_URL = 'https://spontaneous-figolla-1ea875.netlify.app/v2-join.html';
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
@@ -666,7 +667,7 @@ function renderOrbit() {
   const canvas = document.getElementById('orbit-canvas');
   const pArr   = Object.entries(participants);
   const count  = pArr.length;
-  if (!count) { canvas.innerHTML = ''; return; }
+  if (!count) { canvas.innerHTML = ''; document.querySelectorAll('.orbit-ring').forEach(e=>e.remove()); return; }
 
   const wheel = document.getElementById('center-wheel');
   const wa    = document.getElementById('wheel-area');
@@ -675,78 +676,91 @@ function renderOrbit() {
   const cx    = cr.left - wr.left + cr.width  / 2;
   const cy    = cr.top  - wr.top  + cr.height / 2;
 
-  // ── Mỗi vòng đúng 10 người ──
-  const PER_RING  = 10;
-  const numRings  = Math.ceil(count / PER_RING);
+  const PER_RING   = 10;
+  // Số vòng ĐÃ ĐỦ (chỉ hiện vòng tròn khi đủ 10)
+  const fullRings  = Math.floor(count / PER_RING);
+  // Người còn lại chưa đủ vòng mới
+  const remainder  = count - fullRings * PER_RING;
+  // Tổng số vòng cần layout (kể cả vòng đang chờ để định vị)
+  const numRings   = fullRings + (remainder > 0 ? 1 : 0);
 
-  // Gap co dần liên tục: bắt đầu 88px, mỗi vòng thêm giảm đi
-  // Công thức: gap = max(42, 88 - (numRings-1)*8)
-  // 1 vòng=88, 2=80, 3=72, 4=64, 5=56, 6=48, 7=42
-  const baseGap = Math.max(42, 88 - (numRings - 1) * 8);
-  // Khoảng cách từ tâm đến vòng 1 cũng thu nhỏ theo
-  const baseR   = wheelSizePx / 2 + Math.max(55, baseGap * 0.85);
+  // Gap co dần theo số vòng đã đủ
+  const baseGap = Math.max(38, 90 - (Math.max(fullRings,1) - 1) * 10);
+  const baseR   = wheelSizePx / 2 + Math.max(48, baseGap * 0.75);
 
-  // Chia rings
+  // Build rings: chỉ vòng đủ 10 mới có items; vòng đang chờ items=[]
   const rings = [];
   for (let ri = 0; ri < numRings; ri++) {
-    const start = ri * PER_RING;
-    const items = pArr.slice(start, start + PER_RING);
-    const r     = baseR + ri * baseGap;
-    rings.push({ items, r, ri });
+    const isFull = ri < fullRings;
+    const start  = ri * PER_RING;
+    const items  = isFull ? pArr.slice(start, start + PER_RING) : [];
+    const r      = baseR + ri * baseGap;
+    rings.push({ items, r, ri, isFull });
   }
+  // Người chưa đủ vòng: xếp trên vòng đang chờ (vòng cuối) nhưng mờ
+  const pendingItems = remainder > 0 ? pArr.slice(fullRings * PER_RING) : [];
 
-  // Bubble co theo số vòng
-  const bFontSize = numRings <= 1 ? '.84rem'
-                  : numRings <= 2 ? '.78rem'
-                  : numRings <= 4 ? '.70rem'
-                  : numRings <= 6 ? '.62rem' : '.56rem';
-  const bAvaSize  = numRings <= 1 ? 22
-                  : numRings <= 2 ? 20
-                  : numRings <= 4 ? 17
-                  : numRings <= 6 ? 14 : 12;
-  const bAvaFont  = numRings <= 2 ? '.62rem'
-                  : numRings <= 4 ? '.55rem' : '.48rem';
+  // Bubble size co theo số vòng đầy
+  const nF = Math.max(fullRings, 1);
+  const bFontSize = nF <= 1 ? '.84rem' : nF <= 2 ? '.78rem' : nF <= 4 ? '.70rem' : nF <= 6 ? '.62rem' : '.56rem';
+  const bAvaSize  = nF <= 1 ? 22 : nF <= 2 ? 20 : nF <= 4 ? 17 : nF <= 6 ? 14 : 12;
+  const bAvaFont  = nF <= 2 ? '.62rem' : nF <= 4 ? '.55rem' : '.48rem';
 
-  // ── Cập nhật orbit-rings (vòng xanh) ──
-  // Xóa rings cũ
-  document.querySelectorAll('.orbit-ring').forEach(e => e.remove());
+  // ── Orbit-rings: chỉ tạo/update khi cần, KHÔNG xóa mỗi frame ──
+  const wa2 = document.getElementById('wheel-area');
+  const col = currentRingColor || '0,200,248';
 
-  rings.forEach(({ items, r }, rIdx) => {
-    const isFull = items.length >= PER_RING;
-    const ring = document.createElement('div');
-    ring.className = 'orbit-ring ring-idx-' + (rIdx % 7);
-    // Set size trước (không transition lần đầu)
-    ring.style.transition = 'none';
-    ring.style.width  = (r * 2) + 'px';
-    ring.style.height = (r * 2) + 'px';
-    document.getElementById('wheel-area').appendChild(ring);
-    // Sau 1 frame → bật transition + add class
-    requestAnimationFrame(() => {
-      ring.style.transition = '';
-      if (isFull) {
+  // Xóa rings thừa (fullRings giảm)
+  document.querySelectorAll('.orbit-ring').forEach(ring => {
+    const idx = parseInt(ring.dataset.ringIdx);
+    if (idx >= fullRings) ring.remove();
+  });
+
+  // Tạo/update rings cần thiết
+  for (let ri = 0; ri < fullRings; ri++) {
+    const r = baseR + ri * baseGap;
+    let ring = wa2.querySelector(`.orbit-ring[data-ring-idx="${ri}"]`);
+    const isNew = !ring;
+    if (isNew) {
+      ring = document.createElement('div');
+      ring.className = 'orbit-ring ring-idx-' + (ri % 7);
+      ring.dataset.ringIdx = ri;
+      ring.style.width  = (r * 2) + 'px';
+      ring.style.height = (r * 2) + 'px';
+      ring.style.opacity = '0';
+      wa2.appendChild(ring);
+      // Animate in sau 2 frames
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        ring.style.borderColor = `rgba(${col},.85)`;
+        ring.style.boxShadow   =
+          `0 0 0 1px rgba(${col},.15),` +
+          `0 0 22px 5px rgba(${col},.65),` +
+          `0 0 50px 14px rgba(${col},.35),` +
+          `inset 0 0 25px rgba(${col},.12)`;
+        ring.style.opacity = '1';
         ring.classList.add('complete');
-        // spark chỉ nếu vừa đủ (lần đầu complete)
         const prevCount = window._prevRingComplete || {};
-        if (!prevCount[rIdx]) {
+        if (!prevCount[ri]) {
           ring.classList.add('spark');
-          prevCount[rIdx] = true;
+          prevCount[ri] = true;
           window._prevRingComplete = prevCount;
           setTimeout(() => ring.classList.remove('spark'), 700);
         }
-      } else {
-        ring.style.opacity = '0.25'; // vòng chưa đủ: hiện mờ
-        ring.style.borderColor = 'rgba(0,200,248,.2)';
-      }
-    });
-  });
+      }));
+    } else {
+      // Update size nếu baseR/baseGap thay đổi (khi thêm vòng mới)
+      ring.style.width  = (r * 2) + 'px';
+      ring.style.height = (r * 2) + 'px';
+    }
+  }
 
   canvas.innerHTML = '';
 
-  rings.forEach(({ items, r, ri }) => {
-    const n   = items.length;
-    // Vòng chẵn xoay thuận, vòng lẻ xoay ngược (chậm hơn 30%)
-    const spd = ri % 2 === 0 ? 1 : -0.7;
-    // Offset góc ban đầu xen kẽ giữa các vòng để tránh thẳng hàng
+  // Render tên trên các VÒNG ĐÃ ĐỦ
+  rings.forEach(({ items, r, ri, isFull }) => {
+    if (!isFull || !items.length) return;
+    const n   = items.length; // luôn = 10
+    const spd = 1 - ri * 0.08; // cùng chiều, ngoài chậm hơn chút
     const offsetDeg = ri * (360 / PER_RING / 2);
 
     items.forEach(([key, p], i) => {
@@ -788,6 +802,49 @@ function renderOrbit() {
       canvas.appendChild(bubble);
     });
   });
+
+  // ── Render tên pending (chưa đủ 10) — hiện mờ trên vòng đang chờ ──
+  if (pendingItems.length > 0) {
+    const pendingRingIdx = fullRings;
+    const pr = baseR + pendingRingIdx * baseGap;
+    const n  = pendingItems.length;
+    const spd = 1 - pendingRingIdx * 0.08;
+    const offsetDeg = pendingRingIdx * (360 / PER_RING / 2);
+    pendingItems.forEach(([key, p], i) => {
+      const baseAngle = (360 / PER_RING) * i + offsetDeg; // dùng PER_RING để giữ khoảng cách đều khi đủ
+      const angle     = ((baseAngle + orbitAngle * spd) % 360) * (Math.PI / 180);
+      const x = cx + pr * Math.cos(angle);
+      const y = cy + pr * Math.sin(angle);
+      const col    = currentRingColor || '0,200,248';
+      const letter = (p.name || '?')[0].toUpperCase();
+      const bubble = document.createElement('div');
+      bubble.className = 'name-bubble';
+      bubble.style.cssText = `
+        left:${x}px; top:${y}px;
+        border-color:rgba(${col},.35);
+        background:rgba(255,255,255,.55);
+        box-shadow:none;
+        color:rgba(5,15,60,.55);
+        font-size:${bFontSize};
+        padding:4px 10px 4px 4px;
+        opacity:0.55;
+      `;
+      const av = document.createElement('div');
+      av.className = 'bubble-avatar';
+      av.style.cssText = `
+        background:rgba(${col},.4);
+        width:${bAvaSize}px; height:${bAvaSize}px;
+        font-size:${bAvaFont};
+        flex-shrink:0;
+      `;
+      av.textContent = letter;
+      const nm = document.createElement('span');
+      nm.textContent = p.name || '';
+      bubble.appendChild(av);
+      bubble.appendChild(nm);
+      canvas.appendChild(bubble);
+    });
+  }
 }
 
 // ════════════════════════════════════════
@@ -903,13 +960,16 @@ function applySettings(s) {
 
   // Background
   if (s.bgImageData !== undefined) {
-    const bgEl = document.getElementById('bg-image');
+    const bgEl   = document.getElementById('bg-image');
+    const bgBase = document.getElementById('bg-base');
     if (s.bgImageData) {
       bgEl.style.backgroundImage = `url('${s.bgImageData}')`;
-      bgEl.style.opacity = s.bgOpacity !== undefined ? s.bgOpacity : '0.55';
+      bgEl.style.opacity = s.bgOpacity !== undefined ? s.bgOpacity : '1';
+      if (bgBase) bgBase.style.opacity = '0';
     } else {
       bgEl.style.backgroundImage = 'none';
       bgEl.style.opacity = '0';
+      if (bgBase) bgBase.style.opacity = '1';
     }
   }
   if (s.bgOpacity !== undefined && document.getElementById('bg-image').style.backgroundImage !== 'none') {
@@ -933,15 +993,26 @@ function applySettings(s) {
       img.style.display        = 'block';
       img.style.width          = '100%';
       img.style.height         = '100%';
-      img.style.objectFit      = 'cover';
+      img.style.objectFit      = 'contain';
       img.style.objectPosition = 'center';
       img.style.borderRadius   = '0';
-      img.style.filter         = 'brightness(1.08) contrast(1.06) saturate(1.1)';
+      img.style.filter         = 'none';
       document.getElementById('wheel-tagline').style.display = 'none';
+      // Ẩn nền khi có ảnh
+      const cw = document.getElementById('center-wheel');
+      if (cw) cw.style.background = 'transparent';
     } else {
       img.style.display = 'none';
       document.getElementById('wheel-tagline').style.display = '';
+      // Restore nền khi xóa ảnh
+      const cw = document.getElementById('center-wheel');
+      if (cw) cw.style.background = '#ffffff';
     }
+  }
+  // Wheel background color (nền vòng tròn)
+  if (s.wheelBgColor !== undefined) {
+    const cw = document.getElementById('center-wheel');
+    if (cw) cw.style.background = s.wheelBgColor === 'transparent' ? 'transparent' : s.wheelBgColor;
   }
   // Wheel color
   if (s.wheelColor !== undefined) applyWheelColor(s.wheelColor);
@@ -963,13 +1034,12 @@ function applySettings(s) {
     }
   }
 
-  // Zoom ảnh từ admin
-  if (s.wheelLogoZoom !== undefined) {
+  // Zoom + căn tâm ảnh từ admin
+  // zoom/offset không cần nữa vì dùng object-fit:contain
+  if (s.wheelLogoZoom !== undefined || s.wheelLogoOffsetX !== undefined || s.wheelLogoOffsetY !== undefined) {
     const img2 = document.getElementById('wheel-logo-img');
-    const z = s.wheelLogoZoom / 100;
-    img2.style.transform       = 'scale(' + z + ')';
-    img2.style.transformOrigin = 'center center';
-    if (s.wheelLogoZoom !== undefined) { /* handled */ }
+    img2.style.transform = 'none';
+    img2.style.objectPosition = 'center';
   }
 }
 
@@ -1266,6 +1336,18 @@ function applyWheelColor(key) {
   root.style.setProperty('--ring-shadow-solid',
     `0 0 0 4px rgba(${r},.8), 0 0 55px 18px rgba(${r},.75), 0 0 120px 50px rgba(${r},.4)`);
   applyRingMode(currentRingMode);
+  // Cập nhật màu orbit rings đang hiển thị
+  document.querySelectorAll('.orbit-ring.complete').forEach(ring => {
+    ring.style.borderColor = `rgba(${r},.85)`;
+    ring.style.boxShadow   =
+      `0 0 0 1px rgba(${r},.15),` +
+      `0 0 18px 4px rgba(${r},.6),` +
+      `0 0 40px 10px rgba(${r},.3),` +
+      `inset 0 0 20px rgba(${r},.1)`;
+  });
+  document.querySelectorAll('.orbit-ring:not(.complete)').forEach(ring => {
+    ring.style.borderColor = `rgba(${r},.2)`;
+  });
   // Update overlay color nếu đang bật
   const ov = document.getElementById('wheel-overlay');
   if (ov && ov.style.background && ov.style.background !== 'transparent') {
