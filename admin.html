@@ -573,6 +573,52 @@ input[type=range].pink::-webkit-slider-thumb{background:var(--pink);box-shadow:0
         </div>
       </div>
 
+      <!-- NHẠC VÒNG TRÒN -->
+      <div class="panel">
+        <div class="panel-title">🎵 Nhạc vòng tròn <span style="font-size:.63rem;color:var(--dimmer);font-weight:400">— kết bài / highlight</span></div>
+        <div class="upload-zone" id="ring-music-zone">
+          <input type="file" id="ring-music-file" accept="audio/*" onchange="handleRingMusic(event)"/>
+          <div class="upload-icon">🎵</div>
+          <div class="upload-txt"><strong>Nhấp</strong> hoặc kéo MP3 vào đây</div>
+        </div>
+        <div id="ring-music-loaded" style="display:none">
+          <div id="ring-music-name" style="font-size:.7rem;color:var(--dimmer);margin:5px 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px">
+            <button class="glow-btn" id="ring-btn-play"  onclick="ringMusicPlay()"  style="background:rgba(0,200,100,.15);border-color:rgba(0,200,100,.5)">▶</button>
+            <button class="glow-btn" id="ring-btn-pause" onclick="ringMusicPause()" style="display:none">⏸</button>
+            <button class="glow-btn" id="ring-btn-stop"  onclick="ringMusicStop()">⏹</button>
+            <button class="glow-btn" onclick="ringMusicClear()" style="background:rgba(255,60,60,.12)">🗑</button>
+          </div>
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label">Âm lượng <span id="ring-vol-val">80%</span></div>
+            <input type="range" id="ring-vol" min="0" max="100" value="80" oninput="ringMusicVol(this.value)"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- NHẠC NỀN -->
+      <div class="panel">
+        <div class="panel-title">🎶 Nhạc nền <span style="font-size:.63rem;color:var(--dimmer);font-weight:400">— khởi động / mọi người join</span></div>
+        <div class="upload-zone" id="bg-music-zone">
+          <input type="file" id="bg-music-file" accept="audio/*" onchange="handleBgMusic(event)"/>
+          <div class="upload-icon">🎶</div>
+          <div class="upload-txt"><strong>Nhấp</strong> hoặc kéo MP3 vào đây</div>
+        </div>
+        <div id="bg-music-loaded" style="display:none">
+          <div id="bg-music-name" style="font-size:.7rem;color:var(--dimmer);margin:5px 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px">
+            <button class="glow-btn" id="bg-btn-play"  onclick="bgMusicPlay()"  style="background:rgba(0,200,100,.15);border-color:rgba(0,200,100,.5)">▶</button>
+            <button class="glow-btn" id="bg-btn-pause" onclick="bgMusicPause()" style="display:none">⏸</button>
+            <button class="glow-btn" id="bg-btn-stop"  onclick="bgMusicStop()">⏹</button>
+            <button class="glow-btn" onclick="bgMusicClear()" style="background:rgba(255,60,60,.12)">🗑</button>
+          </div>
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label">Âm lượng <span id="bg-vol-val">50%</span></div>
+            <input type="range" id="bg-vol" min="0" max="100" value="50" oninput="bgMusicVol(this.value)"/>
+          </div>
+        </div>
+      </div>
+
       <!-- ORBIT RINGS STATUS -->
       <div class="panel">
         <div class="panel-title">⭕ Trạng thái vòng orbit</div>
@@ -728,6 +774,17 @@ input[type=range].pink::-webkit-slider-thumb{background:var(--pink);box-shadow:0
       </div>
 
       <!-- DANGER -->
+      <!-- TEST DATA -->
+      <div class="panel" style="border-color:rgba(0,200,100,.2)">
+        <div class="panel-title" style="color:rgba(0,200,100,.8)">🧪 Test dữ liệu</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <button class="glow-btn" style="background:rgba(0,200,100,.12);border-color:rgba(0,200,100,.4)"
+            onclick="addTestUsers(70)">➕ Thêm 70 người test</button>
+          <button class="glow-btn" style="background:rgba(255,160,0,.12);border-color:rgba(255,160,0,.4)"
+            onclick="removeTestUsers()">🧹 Xóa người test</button>
+        </div>
+      </div>
+
       <div class="panel danger-panel">
         <div class="panel-title">⚠️ Danger Zone</div>
         <button class="danger-btn" onclick="openClearModal()">
@@ -1249,6 +1306,46 @@ function openClearModal() {
   document.getElementById('clear-modal').classList.add('open');
 }
 function closeClearModal() { document.getElementById('clear-modal').classList.remove('open'); }
+// ═══════════════════════════════════
+// TEST DATA
+// ═══════════════════════════════════
+const TEST_NAMES = [
+  'An','Bình','Chi','Dung','Em','Phương','Giang','Hà','Ích','Khanh',
+  'Lan','Mai','Nam','Oanh','Phúc','Quân','Rương','Sơn','Tâm','Uyên',
+  'Vân','Xuân','Yến','Zara','Ánh','Bảo','Cúc','Dạ','Gia','Hùng',
+  'Kiên','Lâm','Minh','Ngọc','Oanh','Phú','Quỳnh','Thảo','Uyên','Việt',
+  'Wynn','Xuân','Yên','Bích','Cẩm','Diễm','Đức','Giàu','Hiền','Khoa',
+  'Long','Mỹ','Nhân','Oanh','Phi','Quang','Trung','Sáng','Tiên','Uyên',
+  'Vũ','Xuyến','Ý','Zoey','Bảo','Châu','Duy','Đông','Hiếu','Kim'
+];
+const TEST_ROLES = ['Member','Member','Member','Finance','HR','Other'];
+
+async function addTestUsers(n) {
+  showToast('⏳ Đang thêm ' + n + ' người test...');
+  const updates = {};
+  for (let i = 0; i < n; i++) {
+    const key = 'test_' + i;
+    updates['participants/' + key] = {
+      name: TEST_NAMES[i % TEST_NAMES.length] + (i >= TEST_NAMES.length ? ' ' + Math.floor(i/TEST_NAMES.length+1) : ''),
+      role: TEST_ROLES[i % TEST_ROLES.length],
+      joinedAt: Date.now() + i,
+      isTest: true
+    };
+  }
+  await db.ref().update(updates);
+  showToast('✅ Đã thêm ' + n + ' người test!');
+}
+
+async function removeTestUsers() {
+  const snap = await db.ref('participants').once('value');
+  const updates = {};
+  snap.forEach(child => {
+    if (child.val().isTest) updates['participants/' + child.key] = null;
+  });
+  await db.ref().update(updates);
+  showToast('🧹 Đã xóa người test');
+}
+
 async function clearAll() {
   closeClearModal();
   await db.ref('participants').remove();
@@ -1355,6 +1452,78 @@ function autoFitLogo() {
 }
 
 let autoFireInterval = null;
+// ═══════════════════════════════════════
+// NHẠC VÒNG TRÒN (highlight / kết bài)
+// ═══════════════════════════════════════
+let _ringAudio = null;
+
+function handleRingMusic(e) {
+  const f = e.target.files[0]; if (!f) return;
+  if (_ringAudio) { _ringAudio.pause(); _ringAudio = null; }
+  _ringAudio = new Audio(URL.createObjectURL(f));
+  _ringAudio.loop = true;
+  _ringAudio.volume = parseInt(document.getElementById('ring-vol').value) / 100;
+  _ringAudio.onended = () => _ringPlayState(false);
+  document.getElementById('ring-music-name').textContent = '🎵 ' + f.name;
+  document.getElementById('ring-music-zone').style.display = 'none';
+  document.getElementById('ring-music-loaded').style.display = 'block';
+  showToast('✅ Nhạc vòng tròn: ' + f.name);
+}
+function _ringPlayState(playing) {
+  document.getElementById('ring-btn-play').style.display  = playing ? 'none' : '';
+  document.getElementById('ring-btn-pause').style.display = playing ? '' : 'none';
+}
+function ringMusicPlay()  { if (!_ringAudio) return; _ringAudio.play();  _ringPlayState(true);  showToast('▶ Nhạc vòng tròn'); }
+function ringMusicPause() { if (!_ringAudio) return; _ringAudio.pause(); _ringPlayState(false); showToast('⏸ Tạm dừng'); }
+function ringMusicStop()  { if (!_ringAudio) return; _ringAudio.pause(); _ringAudio.currentTime=0; _ringPlayState(false); showToast('⏹ Dừng'); }
+function ringMusicClear() {
+  if (_ringAudio) { _ringAudio.pause(); _ringAudio = null; }
+  document.getElementById('ring-music-file').value = '';
+  document.getElementById('ring-music-zone').style.display = '';
+  document.getElementById('ring-music-loaded').style.display = 'none';
+  showToast('🗑 Đã xóa nhạc vòng tròn');
+}
+function ringMusicVol(v) {
+  document.getElementById('ring-vol-val').textContent = v + '%';
+  if (_ringAudio) _ringAudio.volume = v / 100;
+}
+
+// ═══════════════════════════════════════
+// NHẠC NỀN (khởi động / join)
+// ═══════════════════════════════════════
+let _bgAudio = null;
+
+function handleBgMusic(e) {
+  const f = e.target.files[0]; if (!f) return;
+  if (_bgAudio) { _bgAudio.pause(); _bgAudio = null; }
+  _bgAudio = new Audio(URL.createObjectURL(f));
+  _bgAudio.loop = true;
+  _bgAudio.volume = parseInt(document.getElementById('bg-vol').value) / 100;
+  _bgAudio.onended = () => _bgPlayState(false);
+  document.getElementById('bg-music-name').textContent = '🎶 ' + f.name;
+  document.getElementById('bg-music-zone').style.display = 'none';
+  document.getElementById('bg-music-loaded').style.display = 'block';
+  showToast('✅ Nhạc nền: ' + f.name);
+}
+function _bgPlayState(playing) {
+  document.getElementById('bg-btn-play').style.display  = playing ? 'none' : '';
+  document.getElementById('bg-btn-pause').style.display = playing ? '' : 'none';
+}
+function bgMusicPlay()  { if (!_bgAudio) return; _bgAudio.play();  _bgPlayState(true);  showToast('▶ Nhạc nền đang phát'); }
+function bgMusicPause() { if (!_bgAudio) return; _bgAudio.pause(); _bgPlayState(false); showToast('⏸ Tạm dừng nhạc nền'); }
+function bgMusicStop()  { if (!_bgAudio) return; _bgAudio.pause(); _bgAudio.currentTime=0; _bgPlayState(false); showToast('⏹ Dừng nhạc nền'); }
+function bgMusicClear() {
+  if (_bgAudio) { _bgAudio.pause(); _bgAudio = null; }
+  document.getElementById('bg-music-file').value = '';
+  document.getElementById('bg-music-zone').style.display = '';
+  document.getElementById('bg-music-loaded').style.display = 'none';
+  showToast('🗑 Đã xóa nhạc nền');
+}
+function bgMusicVol(v) {
+  document.getElementById('bg-vol-val').textContent = v + '%';
+  if (_bgAudio) _bgAudio.volume = v / 100;
+}
+
 function fireOnce() {
   db.ref('settings/firework').set({ active:true, ts:Date.now() });
   showToast('🎆 Đã bắn pháo hoa!');
