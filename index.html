@@ -25,8 +25,8 @@
   --wheel-size: 340px;
   /* ring glow colors – controlled by admin */
   --ring-r:0,200,248;
-  --ring-shadow-lo: 0 0 0 3px rgba(var(--ring-r),.6), 0 0 45px 15px rgba(var(--ring-r),.6), 0 0 110px 45px rgba(var(--ring-r),.28);
-  --ring-shadow-hi: 0 0 0 6px rgba(var(--ring-r),1), 0 0 75px 25px rgba(var(--ring-r),.95), 0 0 150px 60px rgba(var(--ring-r),.5);
+  --ring-shadow-lo: 0 0 0 2px rgba(var(--ring-r),.2), 0 0 10px 2px rgba(var(--ring-r),.15), 0 0 25px 5px rgba(var(--ring-r),.08);
+  --ring-shadow-hi: 0 0 0 8px rgba(var(--ring-r),1), 0 0 100px 40px rgba(var(--ring-r),1), 0 0 200px 80px rgba(var(--ring-r),.7), 0 0 300px 100px rgba(var(--ring-r),.4);
   --ring-shadow-solid: 0 0 0 4px rgba(var(--ring-r),.8), 0 0 55px 18px rgba(var(--ring-r),.75), 0 0 120px 50px rgba(var(--ring-r),.4);
 }
 html,body{
@@ -67,7 +67,7 @@ html,body{
 #glow-layer.flashing{animation:glowFlash var(--flash-speed,1s) ease-in-out infinite;}
 #glow-layer.solid{animation:none;opacity:1;}
 #glow-layer.off{animation:none;opacity:0;}
-@keyframes glowFlash{0%,100%{opacity:.15;}50%{opacity:1;}}
+@keyframes glowFlash{0%{opacity:0;}18%{opacity:1;}50%{opacity:1;}82%{opacity:0;}100%{opacity:0;}}
 
 /* stars / particles *
 #star-layer{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
@@ -269,8 +269,11 @@ html,body{
   animation:ringPulse 2s ease-in-out infinite;
 }
 @keyframes ringPulse{
-  0%,100%{box-shadow:var(--ring-shadow-lo);}
-  50%{box-shadow:var(--ring-shadow-hi);}
+  0%   {box-shadow:var(--ring-shadow-lo);}
+  18%  {box-shadow:var(--ring-shadow-hi);}
+  50%  {box-shadow:var(--ring-shadow-hi);}
+  82%  {box-shadow:var(--ring-shadow-lo);}
+  100% {box-shadow:var(--ring-shadow-lo);}
 }
 @keyframes ringPulseOff{
   0%,100%{box-shadow:none;}
@@ -388,17 +391,17 @@ html,body{
 .name-bubble{
   position:absolute;
   will-change:left,top;
-  display:flex;align-items:center;gap:5px;
+  display:flex;align-items:center;gap:6px;
   border-radius:100px;
-  padding:5px 12px 5px 6px;
+  padding:6px 14px 6px 6px;
   white-space:nowrap;
   font-family:'Barlow',sans-serif;
-  font-size:clamp(.68rem,1.2vw,.85rem);
-  font-weight:500;
-  color:#fff;
-  background:rgba(5,15,50,.8);
-  border:1.5px solid;
-  box-shadow:0 0 12px rgba(0,0,0,.4);
+  font-size:clamp(.82rem,1.5vw,1rem);
+  font-weight:800;
+  color:#05143c;
+  background:rgba(255,255,255,.97);
+  border:2.5px solid;
+  box-shadow:0 3px 18px rgba(0,0,0,.55), 0 0 12px currentColor;
   transform:translate(-50%,-50%);
   cursor:default;
   transition:box-shadow .3s;
@@ -565,7 +568,7 @@ const firebaseConfig = {
 // ╔═══════════════════════════════════════════╗
 // ║  JOIN PAGE URL – change after deploying   ║
 // ╚═══════════════════════════════════════════╝
-const JOIN_URL = 'https://nestle-lucky-wheel.github.io/luck-wheel/join.html';
+const JOIN_URL = 'https://spontaneous-figolla-1ea875.netlify.app/v2-join.html';
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
@@ -811,9 +814,9 @@ function renderOrbit() {
     if (b.dataset.sk !== styleKey) {
       b.dataset.sk = styleKey;
       b.style.borderColor  = border;
-      b.style.background   = opacity < 1 ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.9)';
-      b.style.boxShadow    = opacity < 1 ? 'none' : '0 2px 10px ' + border + '50';
-      b.style.color        = opacity < 1 ? 'rgba(5,15,60,.55)' : 'rgba(5,15,60,.92)';
+      b.style.background   = opacity < 1 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.97)';
+      b.style.boxShadow    = opacity < 1 ? '0 1px 6px rgba(0,0,0,.3)' : '0 3px 18px rgba(0,0,0,.55), 0 0 12px ' + border;
+      b.style.color        = opacity < 1 ? 'rgba(5,20,60,.4)' : '#05143c';
       b.style.fontSize     = bFontSize;
       b.style.padding      = PAD;
 
@@ -1356,12 +1359,13 @@ function applyWheelColor(key) {
   currentRingColor = r;
   const root = document.documentElement;
   root.style.setProperty('--ring-r', r);
+  const gi = typeof currentGlowIntensity !== 'undefined' ? currentGlowIntensity : 1;
   root.style.setProperty('--ring-shadow-lo',
-    `0 0 0 3px rgba(${r},.6), 0 0 45px 15px rgba(${r},.6), 0 0 110px 45px rgba(${r},.28)`);
+    `0 0 0 2px rgba(${r},${(.2*gi).toFixed(2)}), 0 0 10px 2px rgba(${r},${(.15*gi).toFixed(2)}), 0 0 25px 5px rgba(${r},${(.08*gi).toFixed(2)})`);
   root.style.setProperty('--ring-shadow-hi',
-    `0 0 0 6px rgba(${r},1), 0 0 75px 25px rgba(${r},.95), 0 0 150px 60px rgba(${r},.5)`);
+    `0 0 0 8px rgba(${r},${Math.min(.99,gi).toFixed(2)}), 0 0 100px 40px rgba(${r},${Math.min(.99,gi).toFixed(2)}), 0 0 200px 80px rgba(${r},${Math.min(.99,.7*gi).toFixed(2)}), 0 0 300px 100px rgba(${r},${Math.min(.99,.4*gi).toFixed(2)})`);
   root.style.setProperty('--ring-shadow-solid',
-    `0 0 0 4px rgba(${r},.8), 0 0 55px 18px rgba(${r},.75), 0 0 120px 50px rgba(${r},.4)`);
+    `0 0 0 4px rgba(${r},${Math.min(.99,.8*gi).toFixed(2)}), 0 0 55px 18px rgba(${r},${Math.min(.99,.75*gi).toFixed(2)}), 0 0 120px 50px rgba(${r},${Math.min(.99,.4*gi).toFixed(2)})`);
   applyRingMode(currentRingMode);
   // Cập nhật màu orbit rings đang hiển thị
   document.querySelectorAll('.orbit-ring.complete').forEach(ring => {
